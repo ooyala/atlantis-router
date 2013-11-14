@@ -4,7 +4,7 @@ VENDOR_PATH  := $(PROJECT_ROOT)/vendor
 GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH)
 export GOPATH
 
-GOCOV := $(PROJECT_ROOT)/vendor/bin/gocov
+GOCOV := $(VENDOR_PATH)/bin/gocov
 export GOCOV
 
 all:
@@ -18,7 +18,7 @@ install-deps:
 	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gozk
 	@echo "Done."
 
-test: 
+test:
 ifdef TEST_PACKAGE
 	@echo "Testing $$TEST_PACKAGE..."
 	@go test $$TEST_PACKAGE $$VERBOSE $$RACE
@@ -31,7 +31,7 @@ else
 	@echo "ok."
 endif
 
-coverage: 
+coverage:
 ifdef TEST_PACKAGE
 	@echo "Coveraging $$TEST_PACKAGE..."
 	@$(GOCOV) test $$TEST_PACKAGE | $(GOCOV) report
@@ -48,7 +48,7 @@ else
 	done
 endif
 
-annotate: 
+annotate:
 ifdef TEST_PACKAGE
 	@echo "Annotating $$TEST_PACKAGE..."
 	@$(GOCOV) test $$TEST_PACKAGE >coverage.json
