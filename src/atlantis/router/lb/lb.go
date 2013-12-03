@@ -5,7 +5,6 @@ import (
 	"atlantis/router/routing"
 	"atlantis/router/zk"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"path"
@@ -24,7 +23,7 @@ type LoadBalancer struct {
 
 	// configuration
 	ZkRoot       string
-	Port         uint16
+	ListenAddr   string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 }
@@ -42,7 +41,7 @@ func New(zkServers string) *LoadBalancer {
 
 		// configuration
 		ZkRoot:       "/atlantis/router",
-		Port:         uint16(80),
+		ListenAddr:   "0.0.0.0:80",
 		ReadTimeout:  120 * time.Second,
 		WriteTimeout: 120 * time.Second,
 	}
@@ -73,13 +72,13 @@ func (l *LoadBalancer) Run() {
 
 	server := &http.Server{
 		Handler:        l,
-		Addr:           fmt.Sprintf(":%d", l.Port),
+		Addr:           l.ListenAddr,
 		ReadTimeout:    l.ReadTimeout,
 		WriteTimeout:   l.WriteTimeout,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Printf("listening on :%d", l.Port)
+	log.Printf("listening on %s", l.ListenAddr)
 	panic(server.ListenAndServe())
 }
 
