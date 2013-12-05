@@ -1,5 +1,9 @@
 PROJECT_ROOT := $(shell pwd)
-VENDOR_PATH  := $(PROJECT_ROOT)/vendor
+ifeq ($(shell pwd | xargs dirname | xargs basename),"lib")
+	VENDOR_PATH := $(PROJECT_ROOT)/vendor
+else
+	VENDOR_PATH := $(shell pwd | xargs dirname | xargs dirname)/vendor
+endif
 
 GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH)
 export GOPATH

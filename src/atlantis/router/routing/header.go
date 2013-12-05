@@ -42,3 +42,38 @@ func NewHeaderMatcher(r string) Matcher {
 
 	return &HeaderMatcher{hdrVal[0], hdrVal[1], false}
 }
+
+var AtlantisAppSuffixes = []string{}
+
+type AtlantisAppMatcher struct {
+	App        string
+	Env        string
+	ParseError bool
+}
+
+func (m *AtlantisAppMatcher) Match(r *http.Request) bool {
+	if m.ParseError {
+		return false
+	}
+	publicPrefix := m.App + "." + m.Env + "."
+	privatePrefix := m.App + ".private." + m.Env + "."
+	for _, suffix := range AtlantisAppSuffixes {
+		if r.Host == publicPrefix+suffix || r.Host == privatePrefix+suffix {
+			return true
+		}
+	}
+	return false
+}
+
+func NewAtlantisAppMatcher(r string) Matcher {
+	hdrVal := strings.Split(r, ".")
+	if len(hdrVal) != 2 {
+		return &AtlantisAppMatcher{App: "", Env: "", ParseError: true}
+	}
+
+	if hdrVal[0] == "" || hdrVal[1] == "" {
+		return &AtlantisAppMatcher{App: "", Env: "", ParseError: true}
+	}
+
+	return &AtlantisAppMatcher{App: hdrVal[0], Env: hdrVal[1], ParseError: false}
+}

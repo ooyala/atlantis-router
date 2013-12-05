@@ -22,10 +22,11 @@ type LoadBalancer struct {
 	trieCb zk.EventCallbacks
 
 	// configuration
-	ZkRoot       string
-	ListenAddr   string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
+	ZkRoot              string
+	ListenAddr          string
+	ReadTimeout         time.Duration
+	WriteTimeout        time.Duration
+	AtlantisAppSuffixes []string
 }
 
 func New(zkServers string) *LoadBalancer {
@@ -40,10 +41,11 @@ func New(zkServers string) *LoadBalancer {
 		trieCb: &TrieCallbacks{config: c},
 
 		// configuration
-		ZkRoot:       "/atlantis/router",
-		ListenAddr:   "0.0.0.0:80",
-		ReadTimeout:  120 * time.Second,
-		WriteTimeout: 120 * time.Second,
+		ZkRoot:              "/atlantis/router",
+		ListenAddr:          "0.0.0.0:80",
+		ReadTimeout:         120 * time.Second,
+		WriteTimeout:        120 * time.Second,
+		AtlantisAppSuffixes: []string{},
 	}
 }
 
@@ -78,6 +80,7 @@ func (l *LoadBalancer) Run() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	routing.AtlantisAppSuffixes = l.AtlantisAppSuffixes
 	log.Printf("listening on %s", l.ListenAddr)
 	panic(server.ListenAndServe())
 }
