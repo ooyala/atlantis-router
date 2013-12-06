@@ -69,6 +69,8 @@ func (l *LoadBalancer) reconfigure() {
 }
 
 func (l *LoadBalancer) Run() {
+	routing.AtlantisAppSuffixes = l.AtlantisAppSuffixes
+
 	// configuration manager
 	go l.reconfigure()
 
@@ -80,7 +82,6 @@ func (l *LoadBalancer) Run() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	routing.AtlantisAppSuffixes = l.AtlantisAppSuffixes
 	log.Printf("listening on %s", l.ListenAddr)
 	panic(server.ListenAndServe())
 }
@@ -95,10 +96,12 @@ func (p *PoolCallbacks) Created(zkPath, jsonBlob string) {
 		log.Printf("error unmarshalling pool: %s", err.Error())
 		return
 	}
+	log.Printf("[config] + pool: %s", zkPool.Name)
 	p.config.AddPool(zkPool.Pool(map[string]config.Host{}))
 }
 
 func (p *PoolCallbacks) Deleted(zkPath string) {
+	log.Printf("[config] - pool: %s", zkPath)
 	p.config.DelPool(path.Base(zkPath))
 }
 
@@ -108,6 +111,7 @@ func (p *PoolCallbacks) Changed(path, jsonBlob string) {
 		log.Printf("error unmarshalling pool: %s", err.Error())
 		return
 	}
+	log.Printf("[config] > pool: %s", zkPool.Name)
 	p.config.UpdatePool(zkPool.Pool(nil))
 }
 
@@ -128,6 +132,7 @@ func (h *HostCallbacks) Created(zkPath, jsonBlob string) {
 		return
 	}
 
+	log.Printf("[config] + host: %s %s", poolName, hostName)
 	if pool := h.config.Pools[poolName]; pool != nil {
 		pool.AddServer(hostName, h.config.ConstructServer(host))
 	}
@@ -138,6 +143,7 @@ func (h *HostCallbacks) Deleted(zkPath string) {
 	if pool := h.config.Pools[poolName]; pool != nil {
 		pool.DelServer(hostName)
 	}
+	log.Printf("[config] - host: %s %s", poolName, hostName)
 }
 
 func (h *HostCallbacks) Changed(path, jsonBlob string) {
@@ -154,10 +160,12 @@ func (p *RuleCallbacks) Created(zkPath, jsonBlob string) {
 		log.Printf("error unmarshalling rule: %s", err.Error())
 		return
 	}
+	log.Printf("[config] + rule: %s", rule.Name)
 	p.config.AddRule(rule)
 }
 
 func (p *RuleCallbacks) Deleted(zkPath string) {
+	log.Printf("[config] - rule: %s", zkPath)
 	p.config.DelRule(path.Base(zkPath))
 }
 
@@ -167,6 +175,7 @@ func (p *RuleCallbacks) Changed(path, jsonBlob string) {
 		log.Printf("error unmarshalling rule: %s", err.Error())
 		return
 	}
+	log.Printf("[config] > rule: %s", rule.Name)
 	p.config.UpdateRule(rule)
 }
 
@@ -181,10 +190,12 @@ func (p *TrieCallbacks) Created(zkPath, jsonBlob string) {
 		log.Printf("error unmarshalling trie: %s", err.Error())
 		return
 	}
+	log.Printf("[config] + trie: %s", trie.Name)
 	p.config.AddTrie(trie)
 }
 
 func (p *TrieCallbacks) Deleted(zkPath string) {
+	log.Printf("[config] - trie: %s", zkPath)
 	p.config.DelTrie(path.Base(zkPath))
 }
 
@@ -194,5 +205,6 @@ func (p *TrieCallbacks) Changed(path, jsonBlob string) {
 		log.Printf("error unmarshalling trie: %s", err.Error())
 		return
 	}
+	log.Printf("[config] > trie: %s", trie.Name)
 	p.config.UpdateTrie(trie)
 }
