@@ -6,7 +6,6 @@ import (
 	"atlantis/router/routing"
 	"atlantis/router/zk"
 	"encoding/json"
-	"log"
 	"net/http"
 	"path"
 	"time"
@@ -64,7 +63,7 @@ func (l *LoadBalancer) reconfigure() {
 	zk.SetZkRoot(l.ZkRoot)
 	for {
 		<-l.zk.ResetCh
-		log.Println("reloading configuration")
+		logger.Printf("reloading configuration")
 		go l.zk.ManageTree(zk.ZkPaths["pools"], l.poolCb, l.hostCb)
 		go l.zk.ManageTree(zk.ZkPaths["rules"], l.ruleCb)
 		go l.zk.ManageTree(zk.ZkPaths["tries"], l.trieCb)
@@ -100,7 +99,6 @@ func (p *PoolCallbacks) Created(zkPath, jsonBlob string) {
 		logger.Errorf("%s unmarshalling %s as pool", err.Error(), jsonBlob)
 		return
 	}
-	log.Printf("[config] + pool: %s", zkPool.Name)
 	p.config.AddPool(zkPool.Pool(map[string]config.Host{}))
 }
 
@@ -116,7 +114,6 @@ func (p *PoolCallbacks) Changed(path, jsonBlob string) {
 		logger.Errorf("%s unmarshalling %s as pool", err.Error(), jsonBlob)
 		return
 	}
-	log.Printf("[config] > pool: %s", zkPool.Name)
 	p.config.UpdatePool(zkPool.Pool(nil))
 }
 
@@ -138,7 +135,6 @@ func (h *HostCallbacks) Created(zkPath, jsonBlob string) {
 		return
 	}
 
-	log.Printf("[config] + host: %s %s", poolName, hostName)
 	if pool := h.config.Pools[poolName]; pool != nil {
 		pool.AddServer(hostName, h.config.ConstructServer(host))
 	}
@@ -150,7 +146,6 @@ func (h *HostCallbacks) Deleted(zkPath string) {
 	if pool := h.config.Pools[poolName]; pool != nil {
 		pool.DelServer(hostName)
 	}
-	log.Printf("[config] - host: %s %s", poolName, hostName)
 }
 
 func (h *HostCallbacks) Changed(path, jsonBlob string) {
@@ -168,7 +163,6 @@ func (p *RuleCallbacks) Created(zkPath, jsonBlob string) {
 		logger.Errorf("%s unmarshalling %s as rule", err.Error(), jsonBlob)
 		return
 	}
-	log.Printf("[config] + rule: %s", rule.Name)
 	p.config.AddRule(rule)
 }
 
@@ -184,7 +178,6 @@ func (p *RuleCallbacks) Changed(path, jsonBlob string) {
 		logger.Errorf("%s unmarshalling %s as rule", err.Error(), jsonBlob)
 		return
 	}
-	log.Printf("[config] > rule: %s", rule.Name)
 	p.config.UpdateRule(rule)
 }
 
@@ -200,7 +193,6 @@ func (p *TrieCallbacks) Created(zkPath, jsonBlob string) {
 		logger.Errorf("%s unmarshalling %s as trie", err.Error(), jsonBlob)
 		return
 	}
-	log.Printf("[config] + trie: %s", trie.Name)
 	p.config.AddTrie(trie)
 }
 
@@ -216,6 +208,5 @@ func (p *TrieCallbacks) Changed(path, jsonBlob string) {
 		logger.Errorf("%s unmarshalling %s as trie", err.Error(), jsonBlob)
 		return
 	}
-	log.Printf("[config] > trie: %s", trie.Name)
 	p.config.UpdateTrie(trie)
 }
