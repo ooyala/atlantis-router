@@ -2,6 +2,7 @@ package lb
 
 import (
 	"atlantis/router/config"
+	"atlantis/router/logger"
 	"atlantis/router/routing"
 	"atlantis/router/zk"
 	"encoding/json"
@@ -31,6 +32,8 @@ type LoadBalancer struct {
 
 func New(zkServers string) *LoadBalancer {
 	c := config.NewConfig(routing.DefaultMatcherFactory())
+
+	logger.InitPkgLogger()
 
 	return &LoadBalancer{
 		zk:     zk.ManagedZkConn(zkServers),
@@ -82,7 +85,7 @@ func (l *LoadBalancer) Run() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Printf("listening on %s", l.ListenAddr)
+	logger.Printf("listening on %s", l.ListenAddr)
 	panic(server.ListenAndServe())
 }
 
@@ -91,9 +94,10 @@ type PoolCallbacks struct {
 }
 
 func (p *PoolCallbacks) Created(zkPath, jsonBlob string) {
+	logger.Debugf("PoolCallbacks.Created(%s, %s)", zkPath, jsonBlob)
 	var zkPool zk.ZkPool
 	if err := json.Unmarshal([]byte(jsonBlob), &zkPool); err != nil {
-		log.Printf("error unmarshalling pool: %s", err.Error())
+		logger.Errorf("%s unmarshalling %s as pool", err.Error(), jsonBlob)
 		return
 	}
 	log.Printf("[config] + pool: %s", zkPool.Name)
@@ -101,14 +105,15 @@ func (p *PoolCallbacks) Created(zkPath, jsonBlob string) {
 }
 
 func (p *PoolCallbacks) Deleted(zkPath string) {
-	log.Printf("[config] - pool: %s", zkPath)
+	logger.Debugf("PoolCallbacks.Deleted(%s)", zkPath)
 	p.config.DelPool(path.Base(zkPath))
 }
 
 func (p *PoolCallbacks) Changed(path, jsonBlob string) {
+	logger.Debugf("PoolCallbacks.Changed(%s, %s)", path, jsonBlob)
 	var zkPool zk.ZkPool
 	if err := json.Unmarshal([]byte(jsonBlob), &zkPool); err != nil {
-		log.Printf("error unmarshalling pool: %s", err.Error())
+		logger.Errorf("%s unmarshalling %s as pool", err.Error(), jsonBlob)
 		return
 	}
 	log.Printf("[config] > pool: %s", zkPool.Name)
@@ -124,11 +129,12 @@ func (h *HostCallbacks) splitPath(zkPath string) (string, string) {
 }
 
 func (h *HostCallbacks) Created(zkPath, jsonBlob string) {
+	logger.Debugf("HostCallbacks.Created(%s, %s)", zkPath, jsonBlob)
 	hostName, poolName := h.splitPath(zkPath)
 
 	var host config.Host
 	if err := json.Unmarshal([]byte(jsonBlob), &host); err != nil {
-		log.Printf("error unmarshalling host: %s", err.Error())
+		logger.Errorf("%s unmarshalling %s as host", err.Error(), jsonBlob)
 		return
 	}
 
@@ -139,6 +145,7 @@ func (h *HostCallbacks) Created(zkPath, jsonBlob string) {
 }
 
 func (h *HostCallbacks) Deleted(zkPath string) {
+	logger.Debugf("HostCallbacks.Deleted(%s)", zkPath)
 	hostName, poolName := h.splitPath(zkPath)
 	if pool := h.config.Pools[poolName]; pool != nil {
 		pool.DelServer(hostName)
@@ -147,7 +154,7 @@ func (h *HostCallbacks) Deleted(zkPath string) {
 }
 
 func (h *HostCallbacks) Changed(path, jsonBlob string) {
-	log.Printf("error: cannot change host %s", path)
+	logger.Errorf("HostCallbacks.Changed(%s, %s)", path, jsonBlob)
 }
 
 type RuleCallbacks struct {
@@ -155,9 +162,10 @@ type RuleCallbacks struct {
 }
 
 func (p *RuleCallbacks) Created(zkPath, jsonBlob string) {
+	logger.Debugf("RuleCallbacks.Created(%s, %s)", zkPath, jsonBlob)
 	var rule config.Rule
 	if err := json.Unmarshal([]byte(jsonBlob), &rule); err != nil {
-		log.Printf("error unmarshalling rule: %s", err.Error())
+		logger.Errorf("%s unmarshalling %s as rule", err.Error(), jsonBlob)
 		return
 	}
 	log.Printf("[config] + rule: %s", rule.Name)
@@ -165,14 +173,15 @@ func (p *RuleCallbacks) Created(zkPath, jsonBlob string) {
 }
 
 func (p *RuleCallbacks) Deleted(zkPath string) {
-	log.Printf("[config] - rule: %s", zkPath)
+	logger.Debugf("RuleCallbacks.Deleted(%s)", zkPath)
 	p.config.DelRule(path.Base(zkPath))
 }
 
 func (p *RuleCallbacks) Changed(path, jsonBlob string) {
+	logger.Debugf("RuleCallbacks.Changed(%s, %s)", path, jsonBlob)
 	var rule config.Rule
 	if err := json.Unmarshal([]byte(jsonBlob), &rule); err != nil {
-		log.Printf("error unmarshalling rule: %s", err.Error())
+		logger.Errorf("%s unmarshalling %s as rule", err.Error(), jsonBlob)
 		return
 	}
 	log.Printf("[config] > rule: %s", rule.Name)
@@ -184,10 +193,11 @@ type TrieCallbacks struct {
 }
 
 func (p *TrieCallbacks) Created(zkPath, jsonBlob string) {
+	logger.Debugf("TrieCallbacks.Created(%s, %s)", zkPath, jsonBlob)
 	var trie config.Trie
 	err := json.Unmarshal([]byte(jsonBlob), &trie)
 	if err != nil {
-		log.Printf("error unmarshalling trie: %s", err.Error())
+		logger.Errorf("%s unmarshalling %s as trie", err.Error(), jsonBlob)
 		return
 	}
 	log.Printf("[config] + trie: %s", trie.Name)
@@ -195,14 +205,15 @@ func (p *TrieCallbacks) Created(zkPath, jsonBlob string) {
 }
 
 func (p *TrieCallbacks) Deleted(zkPath string) {
-	log.Printf("[config] - trie: %s", zkPath)
+	logger.Debugf("TrieCallbacks.Deleted(%s)", zkPath)
 	p.config.DelTrie(path.Base(zkPath))
 }
 
 func (p *TrieCallbacks) Changed(path, jsonBlob string) {
+	logger.Debugf("TrieCallback.Changed(%s, %s)", path, jsonBlob)
 	var trie config.Trie
 	if err := json.Unmarshal([]byte(jsonBlob), &trie); err != nil {
-		log.Printf("error unmarshalling trie: %s", err.Error())
+		logger.Errorf("%s unmarshalling %s as trie", err.Error(), jsonBlob)
 		return
 	}
 	log.Printf("[config] > trie: %s", trie.Name)
