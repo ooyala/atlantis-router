@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"atlantis/router/logger"
 	"net/http"
 	"time"
 )
@@ -54,13 +55,19 @@ func IsValidStatus(s string) bool {
 }
 
 func (s *ServerStatus) ParseAndSet(res *http.Response) {
-	if res.StatusCode == http.StatusOK {
-		hdr := res.Header.Get("Server-Status")
-		if IsValidStatus(hdr) {
-			s.Set(hdr)
-			return
-		}
+	if res.StatusCode != http.StatusOK {
+		logger.Errorf("[SERVER %s] status %d marked maintenance", res.StatusCode)
+		s.Set(StatusMaintenance)
+		return
 	}
+
+	hdr := res.Header.Get("Server-Status")
+	if IsValidStatus(hdr) {
+		s.Set(hdr)
+		return
+	}
+
+	logger.Errorf("[SERVER %s] status %v marked maintenance", hdr)
 	s.Set(StatusMaintenance)
 }
 
@@ -75,7 +82,7 @@ const (
 )
 
 func (s *ServerStatus) SlowStartFactor() uint32 {
-	if s.Current != StatusOk {
+	if !IsValidStatus(s.Current) {
 		return 0
 	}
 

@@ -1,7 +1,7 @@
 package backend
 
 import (
-	"log"
+	"atlantis/router/logger"
 	"net/http"
 	"time"
 )
@@ -50,6 +50,7 @@ func (p *Pool) Shutdown() {
 
 func (p *Pool) AddServer(name string, server *Server) {
 	if _, ok := p.Servers[name]; ok {
+		logger.Errorf("[POOL %s] server %s exists", p.Name, name)
 		return
 	}
 	p.Servers[name] = server
@@ -57,6 +58,7 @@ func (p *Pool) AddServer(name string, server *Server) {
 
 func (p *Pool) DelServer(name string) {
 	if _, ok := p.Servers[name]; !ok {
+		logger.Errorf("[POOL %s] server %s absent", p.Name, name)
 		return
 	}
 	p.Servers[name].Shutdown()
@@ -101,7 +103,7 @@ func (p Pool) Next() *Server {
 
 func (p *Pool) Handle(w http.ResponseWriter, r *http.Request) {
 	if p.Dummy {
-		log.Printf("pool %s is a dummy", p.Name)
+		logger.Printf("[POOL %s] Dummy", p.Name)
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
@@ -109,6 +111,7 @@ func (p *Pool) Handle(w http.ResponseWriter, r *http.Request) {
 	server := p.Next()
 	if server == nil {
 		// reachable when all servers in pool report StatusMaintenance
+		logger.Errorf("[POOL %s] no server")
 		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
 		return
 	}

@@ -21,11 +21,14 @@ func TestConstructServer(t *testing.T) {
 func TestConstructPoolConfig(t *testing.T) {
 	config := NewConfig(routing.DefaultMatcherFactory())
 
-	test := PoolConfig{
-		HealthzEvery:   "Saturn",
-		HealthzTimeout: "Jupiter",
-		RequestTimeout: "Mars",
-		Status:         "Excellent",
+	test := Pool{
+		Name: "Aloha!",
+		Config: PoolConfig{
+			HealthzEvery:   "Saturn",
+			HealthzTimeout: "Jupiter",
+			RequestTimeout: "Mars",
+			Status:         "Excellent",
+		},
 	}
 
 	parsed := config.ConstructPoolConfig(test)

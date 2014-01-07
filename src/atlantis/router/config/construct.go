@@ -2,8 +2,8 @@ package config
 
 import (
 	"atlantis/router/backend"
+	"atlantis/router/logger"
 	"atlantis/router/routing"
-	"log"
 	"time"
 )
 
@@ -17,28 +17,30 @@ func (c *Config) ConstructServer(host Host) *backend.Server {
 	return backend.NewServer(host.Address)
 }
 
-func (c *Config) ConstructPoolConfig(config PoolConfig) backend.PoolConfig {
+func (c *Config) ConstructPoolConfig(pool Pool) backend.PoolConfig {
+	name, config := pool.Name, pool.Config
+
 	healthzEvery, err := time.ParseDuration(config.HealthzEvery)
 	if err != nil {
-		log.Printf("cannot parse %s as duration", config.HealthzEvery)
+		logger.Errorf("[CONFIG %s] %s is not valid duration", name, config.HealthzEvery)
 		healthzEvery = defaultHealthzEvery
 	}
 
 	healthzTimeout, err := time.ParseDuration(config.HealthzTimeout)
 	if err != nil {
-		log.Printf("cannot parse %s as duration", config.HealthzTimeout)
+		logger.Errorf("[CONFIG %s] %s is not valid duration", name, config.HealthzTimeout)
 		healthzTimeout = defaultHealthzTimeout
 	}
 
 	requestTimeout, err := time.ParseDuration(config.RequestTimeout)
 	if err != nil {
-		log.Printf("cannot parse %s as duration", config.RequestTimeout)
+		logger.Errorf("[CONFIG %s] %s is not valid duration", name, config.RequestTimeout)
 		requestTimeout = defaultRequestTimeout
 	}
 
 	status := config.Status
 	if !backend.IsValidStatus(status) {
-		log.Printf("%s is not valid status", config.Status)
+		logger.Errorf("[CONFIG %s] %s is not valid status", name, config.Status)
 		status = "OK"
 	}
 
@@ -51,12 +53,12 @@ func (c *Config) ConstructPoolConfig(config PoolConfig) backend.PoolConfig {
 }
 
 func (c *Config) ConstructPool(pool Pool) *backend.Pool {
-	return backend.NewPool(pool.Name, c.ConstructPoolConfig(pool.Config))
+	return backend.NewPool(pool.Name, c.ConstructPoolConfig(pool))
 }
 
 func (c *Config) ConstructRule(rule Rule) *routing.Rule {
 	if rule.Next == "" && rule.Pool == "" {
-		log.Printf("no pool or trie in rule %s", rule.Name)
+		logger.Errorf("[RULE %s] no pool or trie", rule.Name)
 		return routing.DummyRule(rule.Name)
 	}
 
@@ -64,7 +66,7 @@ func (c *Config) ConstructRule(rule Rule) *routing.Rule {
 	if rule.Next != "" {
 		next = c.Tries[rule.Next]
 		if next == nil {
-			log.Printf("no trie %s for rule %s", rule.Next, rule.Name)
+			logger.Errorf("[RULE %s] trie %s absent", rule.Name, rule.Next)
 			next = routing.DummyTrie(rule.Next)
 		}
 	}
@@ -73,14 +75,14 @@ func (c *Config) ConstructRule(rule Rule) *routing.Rule {
 	if rule.Pool != "" {
 		pool = c.Pools[rule.Pool]
 		if pool == nil {
-			log.Printf("no pool %s for rule %s", rule.Pool, rule.Name)
+			logger.Errorf("[RULE %s] trie %s absent", rule.Name, rule.Pool)
 			pool = backend.DummyPool(rule.Pool)
 		}
 	}
 
 	matcher, err := c.MatcherFactory.Make(rule.Type, rule.Value)
 	if err != nil {
-		log.Printf("error, replacing %s with false", rule.Type)
+		logger.Errorf("[RULE %s] setting matcher false", rule.Name)
 		matcher = routing.NewStaticMatcher("false")
 	}
 
@@ -94,7 +96,7 @@ func (c *Config) ConstructTrie(trie Trie) *routing.Trie {
 		if _, ok := c.Rules[rule]; ok {
 			list = append(list, c.Rules[rule])
 		} else {
-			log.Printf("no rule %s for trie %s", rule, trie.Name)
+			logger.Errorf("[TRIE %s] rule %s absent", trie.Name, rule)
 			list = append(list, routing.DummyRule(rule))
 		}
 	}

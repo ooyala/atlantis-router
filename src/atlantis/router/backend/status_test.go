@@ -110,13 +110,13 @@ func TestSlowStartFactor(t *testing.T) {
 	status := NewServerStatus()
 
 	status.Set(StatusCritical)
-	if status.SlowStartFactor() != 0 {
-		t.Errorf("should not penalize critical servers")
+	if status.SlowStartFactor() == 0 {
+		t.Errorf("should affect critical servers")
 	}
 
 	status.Set(StatusDegraded)
-	if status.SlowStartFactor() != 0 {
-		t.Errorf("should not penalize degraded servers")
+	if status.SlowStartFactor() == 0 {
+		t.Errorf("should affect degraded servers")
 	}
 
 	status.Set(StatusOk)

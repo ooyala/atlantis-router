@@ -1,9 +1,9 @@
 package backend
 
 import (
+	"atlantis/router/logger"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -37,8 +37,8 @@ type ResponseError struct {
 func (s *Server) RoundTrip(req *http.Request, ch chan ResponseError) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("transport %s panic: %s", s.Address, r)
-			ch <- ResponseError{nil, errors.New("Transport Panic")}
+			err := fmt.Sprintf("%s", r)
+			ch <- ResponseError{nil, errors.New(err)}
 		}
 	}()
 
@@ -76,9 +76,10 @@ func (s *Server) Handle(w http.ResponseWriter, r *http.Request, tout time.Durati
 			w.WriteHeader(resErr.Response.StatusCode)
 			_, err := s.copier.Copy(w, resErr.Response.Body)
 			if err != nil {
-				log.Printf("io.Copy: %s", err)
+				logger.Errorf("[SERVER %s] %s", s.Address, err)
 			}
 		} else {
+			logger.Errorf("[SERVER %s] %s", s.Address, resErr.Error)
 			http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		}
 	case <-time.After(tout):
@@ -99,6 +100,7 @@ func (s *Server) CheckStatus(tout time.Duration) {
 			defer resErr.Response.Body.Close()
 			s.Status.ParseAndSet(resErr.Response)
 		} else {
+			logger.Errorf("[SERVER %s] /healthz %s", resErr.Error)
 			s.Status.Set(StatusCritical)
 		}
 	case <-time.After(tout):

@@ -1,9 +1,9 @@
 package zk
 
 import (
+	"atlantis/router/logger"
 	"errors"
 	"launchpad.net/gozk"
-	"log"
 	"sync"
 	"time"
 )
@@ -38,7 +38,7 @@ func (z *ZkConn) dialExclusive() {
 	z.Lock()
 
 	for err := z.dial(); err != nil; {
-		log.Printf("z.dial(): %s", err)
+		logger.Printf("[ZKCONN %d] z.dial(): %s", z, err)
 	}
 
 	z.Unlock()
@@ -66,7 +66,7 @@ func (z *ZkConn) dial() error {
 func (z *ZkConn) waitOnConnect() error {
 	for {
 		ev := <-z.eventCh
-		log.Printf("waitOnConnect: %d %s", ev.State, ev)
+		logger.Printf("[ZKCONN %d] eventCh-> %d %s in waitOnConnect", z, ev.State, ev)
 
 		switch ev.State {
 		case zookeeper.STATE_CONNECTED:
@@ -83,7 +83,7 @@ func (z *ZkConn) monitorEventCh() {
 	for {
 		select {
 		case ev := <-z.eventCh:
-			log.Printf("monitorEventCh: %d, %s", ev.State, ev)
+			logger.Printf("[ZkConn %d] eventCh -> %d %s in monitorEventCh", ev.State, ev)
 			if ev.State == zookeeper.STATE_EXPIRED_SESSION ||
 				ev.State == zookeeper.STATE_CONNECTING {
 				z.dialExclusive()

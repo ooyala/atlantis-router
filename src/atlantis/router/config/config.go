@@ -2,8 +2,8 @@ package config
 
 import (
 	"atlantis/router/backend"
+	"atlantis/router/logger"
 	"atlantis/router/routing"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -46,7 +46,7 @@ func (c *Config) AddPool(pool Pool) {
 	defer c.Unlock()
 
 	if _, ok := c.Pools[pool.Name]; ok {
-		log.Printf("pool %s exists in config", pool.Name)
+		logger.Errorf("pool exists in config", pool.Name)
 		return
 	}
 
@@ -66,11 +66,11 @@ func (c *Config) UpdatePool(pool Pool) {
 	defer c.Unlock()
 
 	if _, ok := c.Pools[pool.Name]; !ok {
-		log.Printf("no pool %s to update", pool.Name)
+		logger.Errorf("no pool %s to update", pool.Name)
 		return
 	}
 
-	c.Pools[pool.Name].Reconfigure(c.ConstructPoolConfig(pool.Config))
+	c.Pools[pool.Name].Reconfigure(c.ConstructPoolConfig(pool))
 }
 
 func (c *Config) DelPool(name string) {
@@ -78,7 +78,7 @@ func (c *Config) DelPool(name string) {
 	defer c.Unlock()
 
 	if _, ok := c.Pools[name]; !ok {
-		log.Printf("no pool %s to delete", name)
+		logger.Errorf("no pool %s to delete", name)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (c *Config) AddRule(rule Rule) {
 	defer c.Unlock()
 
 	if _, ok := c.Rules[rule.Name]; ok {
-		log.Printf("rule %s exists in config", rule.Name)
+		logger.Errorf("rule %s exists in config", rule.Name)
 		return
 	}
 
@@ -131,7 +131,7 @@ func (c *Config) DelRule(name string) {
 	defer c.Unlock()
 
 	if _, ok := c.Rules[name]; !ok {
-		log.Printf("no rule %s to delete", name)
+		logger.Errorf("no rule %s to delete", name)
 		return
 	}
 
@@ -149,7 +149,7 @@ func (c *Config) AddTrie(trie Trie) {
 	defer c.Unlock()
 
 	if _, ok := c.Tries[trie.Name]; ok {
-		log.Printf("trie %s exists in config", trie.Name)
+		logger.Errorf("trie %s exists in config", trie.Name)
 		return
 	}
 
@@ -186,7 +186,7 @@ func (c *Config) DelTrie(name string) {
 	defer c.Unlock()
 
 	if _, ok := c.Tries[name]; !ok {
-		log.Printf("no trie %s to delete", name)
+		logger.Errorf("no trie %s to delete", name)
 		return
 	}
 
