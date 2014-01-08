@@ -73,7 +73,7 @@ func Errorf(fmt string, args ...interface{}) {
 	if pkgLogger != nil {
 		pkgLogger.Errorf(fmt, args...)
 	} else {
-		log.Printf("[CONSOLE] [ERROR] "+fmt, args...)
+		log.Printf("[nil] [ERROR] "+fmt, args...)
 	}
 }
 
@@ -81,7 +81,7 @@ func Printf(fmt string, args ...interface{}) {
 	if pkgLogger != nil {
 		pkgLogger.Printf(fmt, args...)
 	} else {
-		log.Printf("[CONSOLE] [PRINTF] "+fmt, args...)
+		log.Printf("[nil] [PRINTF] "+fmt, args...)
 	}
 }
 
@@ -89,6 +89,6 @@ func Debugf(fmt string, args ...interface{}) {
 	if pkgLogger != nil {
 		pkgLogger.Debugf(fmt, args...)
 	} else {
-		log.Printf("[CONSOLE] [DEBUG] "+fmt, args...)
+		log.Printf("[nil] [DEBUG] "+fmt, args...)
 	}
 }

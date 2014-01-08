@@ -22,25 +22,25 @@ func (c *Config) ConstructPoolConfig(pool Pool) backend.PoolConfig {
 
 	healthzEvery, err := time.ParseDuration(config.HealthzEvery)
 	if err != nil {
-		logger.Errorf("[CONFIG %s] %s is not valid duration", name, config.HealthzEvery)
+		logger.Errorf("[config %s] %s is not valid duration", name, config.HealthzEvery)
 		healthzEvery = defaultHealthzEvery
 	}
 
 	healthzTimeout, err := time.ParseDuration(config.HealthzTimeout)
 	if err != nil {
-		logger.Errorf("[CONFIG %s] %s is not valid duration", name, config.HealthzTimeout)
+		logger.Errorf("[config %s] %s is not valid duration", name, config.HealthzTimeout)
 		healthzTimeout = defaultHealthzTimeout
 	}
 
 	requestTimeout, err := time.ParseDuration(config.RequestTimeout)
 	if err != nil {
-		logger.Errorf("[CONFIG %s] %s is not valid duration", name, config.RequestTimeout)
+		logger.Errorf("[config %s] %s is not valid duration", name, config.RequestTimeout)
 		requestTimeout = defaultRequestTimeout
 	}
 
 	status := config.Status
 	if !backend.IsValidStatus(status) {
-		logger.Errorf("[CONFIG %s] %s is not valid status", name, config.Status)
+		logger.Errorf("[config %s] %s is not valid status", name, config.Status)
 		status = "OK"
 	}
 
@@ -58,7 +58,7 @@ func (c *Config) ConstructPool(pool Pool) *backend.Pool {
 
 func (c *Config) ConstructRule(rule Rule) *routing.Rule {
 	if rule.Next == "" && rule.Pool == "" {
-		logger.Errorf("[RULE %s] no pool or trie", rule.Name)
+		logger.Errorf("[rule %s] no pool or trie", rule.Name)
 		return routing.DummyRule(rule.Name)
 	}
 
@@ -66,7 +66,7 @@ func (c *Config) ConstructRule(rule Rule) *routing.Rule {
 	if rule.Next != "" {
 		next = c.Tries[rule.Next]
 		if next == nil {
-			logger.Errorf("[RULE %s] trie %s absent", rule.Name, rule.Next)
+			logger.Errorf("[rule %s] trie %s absent", rule.Name, rule.Next)
 			next = routing.DummyTrie(rule.Next)
 		}
 	}
@@ -75,14 +75,14 @@ func (c *Config) ConstructRule(rule Rule) *routing.Rule {
 	if rule.Pool != "" {
 		pool = c.Pools[rule.Pool]
 		if pool == nil {
-			logger.Errorf("[RULE %s] trie %s absent", rule.Name, rule.Pool)
+			logger.Errorf("[rule %s] trie %s absent", rule.Name, rule.Pool)
 			pool = backend.DummyPool(rule.Pool)
 		}
 	}
 
 	matcher, err := c.MatcherFactory.Make(rule.Type, rule.Value)
 	if err != nil {
-		logger.Errorf("[RULE %s] setting matcher false", rule.Name)
+		logger.Errorf("[rule %s] setting matcher false", rule.Name)
 		matcher = routing.NewStaticMatcher("false")
 	}
 
@@ -96,7 +96,7 @@ func (c *Config) ConstructTrie(trie Trie) *routing.Trie {
 		if _, ok := c.Rules[rule]; ok {
 			list = append(list, c.Rules[rule])
 		} else {
-			logger.Errorf("[TRIE %s] rule %s absent", trie.Name, rule)
+			logger.Errorf("[trie %s] rule %s absent", trie.Name, rule)
 			list = append(list, routing.DummyRule(rule))
 		}
 	}

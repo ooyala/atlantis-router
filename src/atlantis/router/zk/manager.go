@@ -15,7 +15,7 @@ type EventCallbacks interface {
 func (z *ZkConn) ManageNode(node string, callbacks EventCallbacks) error {
 	content, _, eventCh, err := z.Conn.GetW(node)
 	if err != nil {
-		logger.Errorf("[ZKCONN %d] GetW(%s): %s", z, node, err)
+		logger.Errorf("[zkconn %d] GetW(%s): %s", z, node, err)
 		return err
 	}
 
@@ -32,7 +32,7 @@ func (z *ZkConn) ManageNode(node string, callbacks EventCallbacks) error {
 
 			if ev.State == zookeeper.STATE_EXPIRED_SESSION ||
 				ev.State == zookeeper.STATE_CONNECTING {
-				logger.Printf("[ZKCONN %d] connection lost, stop watching %s", z, node)
+				logger.Printf("[zkconn %d] connection lost, stop watching %s", z, node)
 				return
 			}
 
@@ -43,7 +43,7 @@ func (z *ZkConn) ManageNode(node string, callbacks EventCallbacks) error {
 			case zookeeper.EVENT_CHANGED:
 				content, _, eventCh, err = z.Conn.GetW(node)
 				if err != nil {
-					logger.Errorf("[ZKCONN %d] GetW(%s): %s", z, node, err)
+					logger.Errorf("[zkconn %d] GetW(%s): %s", z, node, err)
 					return
 				}
 				callbacks.Changed(node, content)
@@ -61,7 +61,7 @@ func (z *ZkConn) ManageTree(node string, callbacks ...EventCallbacks) {
 
 	children, _, eventCh, err := z.Conn.ChildrenW(node)
 	if err != nil {
-		logger.Errorf("[ZKCONN %d] ChildrenW(%s): %s", z, node, err)
+		logger.Errorf("[zkconn %d] ChildrenW(%s): %s", z, node, err)
 		return
 	}
 
@@ -83,19 +83,19 @@ func (z *ZkConn) ManageTree(node string, callbacks ...EventCallbacks) {
 
 		if ev.State == zookeeper.STATE_EXPIRED_SESSION ||
 			ev.State == zookeeper.STATE_CONNECTING {
-			logger.Printf("[ZKCONN %d] connection lost, stop watching %s", z, node)
+			logger.Printf("[zkconn %d] connection lost, stop watching %s", z, node)
 			return
 		}
 
 		switch ev.Type {
 		case zookeeper.EVENT_DELETED:
-			logger.Printf("[ZKCONN %d] node deleted, stop watching %s", z, node)
+			logger.Printf("[zkconn %d] node deleted, stop watching %s", z, node)
 			return
 		case zookeeper.EVENT_CHILD:
 			prev := children
 			children, _, eventCh, err = z.Conn.ChildrenW(node)
 			if err != nil {
-				logger.Errorf("[ZKCONN %d] ChildrenW(%s): %s", z, node, err)
+				logger.Errorf("[zkconn %d] ChildrenW(%s): %s", z, node, err)
 				return
 			}
 			for _, child := range ArrayDiff(children, prev) {

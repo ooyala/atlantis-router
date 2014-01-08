@@ -6,6 +6,7 @@ import (
 	"atlantis/router/routing"
 	"atlantis/router/zk"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"path"
 	"time"
@@ -52,6 +53,9 @@ func New(zkServers string) *LoadBalancer {
 }
 
 func (l *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// stamp arrival time
+	r.Header.Add("atlantis-arrival-time", fmt.Sprintf("%d", time.Now().UnixNano()))
+
 	if pool := l.config.Route(r); pool != nil {
 		pool.Handle(w, r)
 	} else {

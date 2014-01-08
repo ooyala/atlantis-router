@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"atlantis/router/logger"
 	"net/http"
 	"time"
 )
@@ -56,7 +55,6 @@ func IsValidStatus(s string) bool {
 
 func (s *ServerStatus) ParseAndSet(res *http.Response) {
 	if res.StatusCode != http.StatusOK {
-		logger.Errorf("[SERVER %s] status %d marked maintenance", res.StatusCode)
 		s.Set(StatusMaintenance)
 		return
 	}
@@ -67,7 +65,6 @@ func (s *ServerStatus) ParseAndSet(res *http.Response) {
 		return
 	}
 
-	logger.Errorf("[SERVER %s] status %v marked maintenance", hdr)
 	s.Set(StatusMaintenance)
 }
 
@@ -86,14 +83,17 @@ func (s *ServerStatus) SlowStartFactor() uint32 {
 		return 0
 	}
 
-	Tdelta := time.Now().Unix() - s.changed.Unix()
-	if Tdelta > Tstartup {
-		return 0
-	} else if Tdelta > 0 {
+	d := time.Now().Unix() - s.changed.Unix()
+	f := uint32(0)
+	if d > Tstartup {
+		f = 0
+	} else if d > 0 {
 		k := float64(Kstartup)
-		return uint32(k/float64(Tdelta) - k/float64(Tstartup))
+		f = uint32(k/float64(d) - k/float64(Tstartup))
 	} else {
-		// Tdelta is 0
-		return Kstartup
+		// d == 0
+		f = Kstartup
 	}
+
+	return f
 }

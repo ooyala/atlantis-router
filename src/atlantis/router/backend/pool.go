@@ -50,7 +50,7 @@ func (p *Pool) Shutdown() {
 
 func (p *Pool) AddServer(name string, server *Server) {
 	if _, ok := p.Servers[name]; ok {
-		logger.Errorf("[POOL %s] server %s exists", p.Name, name)
+		logger.Errorf("[pool %s] server %s exists", p.Name, name)
 		return
 	}
 	p.Servers[name] = server
@@ -58,7 +58,7 @@ func (p *Pool) AddServer(name string, server *Server) {
 
 func (p *Pool) DelServer(name string) {
 	if _, ok := p.Servers[name]; !ok {
-		logger.Errorf("[POOL %s] server %s absent", p.Name, name)
+		logger.Errorf("[pool %s] server %s absent", p.Name, name)
 		return
 	}
 	p.Servers[name].Shutdown()
@@ -77,6 +77,7 @@ func (p *Pool) RunChecks() {
 				go server.CheckStatus(p.Config.HealthzTimeout)
 			}
 		case <-p.killCh:
+			logger.Debugf("[pool %s] stopping checks", p.Name)
 			return
 		}
 	}
@@ -103,7 +104,7 @@ func (p Pool) Next() *Server {
 
 func (p *Pool) Handle(w http.ResponseWriter, r *http.Request) {
 	if p.Dummy {
-		logger.Printf("[POOL %s] Dummy", p.Name)
+		logger.Printf("[pool %s] Dummy", p.Name)
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
@@ -111,7 +112,7 @@ func (p *Pool) Handle(w http.ResponseWriter, r *http.Request) {
 	server := p.Next()
 	if server == nil {
 		// reachable when all servers in pool report StatusMaintenance
-		logger.Errorf("[POOL %s] no server")
+		logger.Printf("[pool %s] no server")
 		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
 		return
 	}
