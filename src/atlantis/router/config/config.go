@@ -25,13 +25,13 @@ func NewConfig(matcherFactory *routing.MatcherFactory) *Config {
 	}
 }
 
-func (c *Config) Route(r *http.Request) *backend.Pool {
+func (c *Config) RouteFrom(trie string, r *http.Request) *backend.Pool {
 	c.RLock()
 	defer c.RUnlock()
 
 	var pool *backend.Pool
 
-	next := c.Tries["root"]
+	next := c.Tries[trie]
 	for next != nil {
 		pool, next = next.Walk(r)
 		if pool != nil {
@@ -39,6 +39,10 @@ func (c *Config) Route(r *http.Request) *backend.Pool {
 		}
 	}
 	return nil
+}
+
+func (c *Config) Route(r *http.Request) *backend.Pool {
+	return c.RouteFrom("root", r)
 }
 
 func (c *Config) AddPool(pool Pool) {
