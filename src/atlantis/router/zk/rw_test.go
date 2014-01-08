@@ -37,7 +37,7 @@ func TestStartServer(t *testing.T) {
 		t.Fatalf("cannot create zk root")
 	}
 
-	for _, node := range []string{"pools", "rules", "tries"} {
+	for _, node := range []string{"pools", "rules", "tries", "ports"} {
 		zkPath := path.Join(zkRoot, node)
 		_, err = zkConn.Conn.Create(zkPath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 		if err != nil {
@@ -96,6 +96,14 @@ func testTrie() config.Trie {
 			"red",
 		},
 		Internal: false,
+	}
+}
+
+func testPort() config.Port {
+	return config.Port{
+		Name: "testport",
+		Port: 49152,
+		Trie: "testtrie",
 	}
 }
 
@@ -319,12 +327,12 @@ func TestSetTrie(t *testing.T) {
 
 	err = json.Unmarshal([]byte(jsonBlob), &node)
 	if err != nil {
-		t.Errorf("should marshal correctly")
+		t.Errorf("should unmarshal correctly")
 	} else if node.Name != trie.Name || node.Internal != trie.Internal {
-		t.Errorf("should marshal accurately")
+		t.Errorf("should unmarshal accurately")
 	}
 
-	trie.Internal = false
+	trie.Internal = true
 	if err := SetTrie(zkConn.Conn, trie); err != nil {
 		t.Fatalf("should modify trie")
 	}
@@ -334,15 +342,65 @@ func TestSetTrie(t *testing.T) {
 		t.Errorf("should modify node in place")
 	}
 
-	err = json.Unmarshal([]byte(jsonBlob), &node)
+	jsonBlob, _, err = zkConn.Conn.Get("/testing/tries/colors")
 	if err != nil {
 		t.Fatalf("cannot read updated node")
 	}
 
 	err = json.Unmarshal([]byte(jsonBlob), &node)
 	if err != nil {
-		t.Errorf("should marshal correctly")
-	} else if node.Internal != false {
+		t.Errorf("should unmarshal correctly")
+	} else if node.Internal != true {
+		t.Errorf("should update accurately")
+	}
+}
+
+func TestSetPort(t *testing.T) {
+	port := testPort()
+
+	if err := SetPort(zkConn.Conn, port); err != nil {
+		t.Fatalf("cannot create port: %v", err)
+	}
+
+	jsonBlob, _, err := zkConn.Conn.Get("/testing/ports/testport")
+	if err != nil {
+		t.Fatalf("should create port node")
+	}
+
+	defer func() {
+		if err := zkConn.Conn.Delete("/testing/ports/testport", -1); err != nil {
+			t.Fatalf("could not clean up port node")
+		}
+	}()
+
+	var node config.Port
+
+	err = json.Unmarshal([]byte(jsonBlob), &node)
+	if err != nil {
+		t.Errorf("should unmarshal correctly")
+	} else if node.Name != port.Name || node.Port != port.Port || node.Trie != port.Trie {
+		t.Errorf("should unmarshal accurately")
+	}
+
+	port.Port = uint16(1337)
+	if err := SetPort(zkConn.Conn, port); err != nil {
+		t.Fatalf("should modify port")
+	}
+
+	children, _, err := zkConn.Conn.Children("/testing/ports")
+	if err != nil || len(children) != 1 {
+		t.Errorf("should modify node in place")
+	}
+
+	jsonBlob, _, err = zkConn.Conn.Get("/testing/ports/testport")
+	if err != nil {
+		t.Fatalf("cannot read updated node")
+	}
+
+	err = json.Unmarshal([]byte(jsonBlob), &node)
+	if err != nil {
+		t.Errorf("should unmarshal correctly")
+	} else if node.Port != uint16(1337) {
 		t.Errorf("should update accurately")
 	}
 }
@@ -463,6 +521,28 @@ func TestDelTrie(t *testing.T) {
 	}
 }
 
+func TestDelPort(t *testing.T) {
+	if err := DelPort(zkConn.Conn, "sketches"); err != nil {
+		t.Errorf("should silently ignore non existent ports")
+	}
+
+	if err := SetPort(zkConn.Conn, testPort()); err != nil {
+		t.Fatalf("cannot create port node")
+	}
+
+	if err := DelPort(zkConn.Conn, "testport"); err != nil {
+		t.Errorf("should delete port")
+	}
+
+	if stat, err := zkConn.Conn.Exists("/testing/ports/testport"); err != nil {
+		t.Fatalf("cannot stat port")
+	} else if stat != nil {
+		if err := zkConn.Conn.Delete("/testing/ports/testport", -1); err != nil {
+			t.Fatalf("could not clean up port")
+		}
+	}
+}
+
 func TestPoolExists(t *testing.T) {
 	if exists, err := PoolExists(zkConn.Conn, "swimming"); err != nil {
 		t.Fatalf("cannot check if pool exists")
@@ -540,6 +620,34 @@ func TestTrieExists(t *testing.T) {
 
 	if exists, err := TrieExists(zkConn.Conn, "colors"); err != nil {
 		t.Fatalf("cannot check if trie exists")
+	} else {
+		if !exists {
+			t.Errorf("should be true")
+		}
+	}
+}
+
+func TestPortExists(t *testing.T) {
+	if exists, err := PortExists(zkConn.Conn, "testport"); err != nil {
+		t.Fatalf("cannot check if port exists")
+	} else {
+		if exists {
+			t.Errorf("should be false")
+		}
+	}
+
+	if err := SetPort(zkConn.Conn, testPort()); err != nil {
+		t.Fatalf("cannot create port")
+	}
+
+	defer func() {
+		if err := DelPort(zkConn.Conn, "testport"); err != nil {
+			t.Fatalf("could not clean up port")
+		}
+	}()
+
+	if exists, err := PortExists(zkConn.Conn, "testport"); err != nil {
+		t.Fatalf("cannot check if port exists")
 	} else {
 		if !exists {
 			t.Errorf("should be true")
@@ -691,6 +799,54 @@ func TestListTries(t *testing.T) {
 	}
 }
 
+func TestListPorts(t *testing.T) {
+	list, err := ListPorts(zkConn.Conn)
+	if err != nil || len(list) > 0 {
+		t.Errorf("should be empty")
+	}
+
+	port := testPort()
+
+	if err := SetPort(zkConn.Conn, port); err != nil {
+		t.Fatalf("cannot set port")
+	}
+
+	defer func() {
+		if err := DelPort(zkConn.Conn, "testport"); err != nil {
+			t.Fatalf("could not clean up port")
+		}
+	}()
+
+	list, err = ListPorts(zkConn.Conn)
+	if err != nil {
+		t.Errorf("should list ports")
+	} else if len(list) != 1 || list[0] != "testport" {
+		t.Errorf("should list ports accurately")
+	}
+
+	port.Name = "testport2"
+
+	if err := SetPort(zkConn.Conn, port); err != nil {
+		t.Fatalf("could not set port")
+	}
+
+	defer func() {
+		if err := DelPort(zkConn.Conn, "testport2"); err != nil {
+			t.Fatalf("could not clean up port")
+		}
+	}()
+
+	list, err = ListPorts(zkConn.Conn)
+	if err != nil {
+		t.Errorf("should list ports")
+	} else {
+		sort.Strings(list)
+		if len(list) != 2 || list[0] != "testport" || list[1] != "testport2" {
+			t.Errorf("should list ports accurately")
+		}
+	}
+}
+
 func TestGetPool(t *testing.T) {
 	if _, err := GetPool(zkConn.Conn, "punting"); err == nil {
 		t.Errorf("should error on non existent pool")
@@ -786,6 +942,33 @@ func TestGetTrie(t *testing.T) {
 			if node.Rules[i] != trie.Rules[i] {
 				t.Errorf("should get trie accurately")
 			}
+		}
+	}
+}
+
+func TestGetPort(t *testing.T) {
+	if _, err := GetPort(zkConn.Conn, "sketches"); err == nil {
+		t.Errorf("should error on non existent port")
+	}
+
+	port := testPort()
+
+	if err := SetPort(zkConn.Conn, port); err != nil {
+		t.Fatalf("could not set port")
+	}
+
+	defer func() {
+		if err := DelPort(zkConn.Conn, "testport"); err != nil {
+			t.Fatalf("could not clean up port")
+		}
+	}()
+
+	node, err := GetPort(zkConn.Conn, "testport")
+	if err != nil {
+		t.Errorf("should get port")
+	} else {
+		if node.Name != port.Name || node.Port != port.Port || node.Trie != port.Trie {
+			t.Errorf("should get port accurately")
 		}
 	}
 }

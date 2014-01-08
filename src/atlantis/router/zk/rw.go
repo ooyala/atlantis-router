@@ -12,12 +12,14 @@ var ZkPaths map[string]string = map[string]string{
 	"pools": "/pools",
 	"rules": "/rules",
 	"tries": "/tries",
+	"ports": "/ports",
 }
 
 func SetZkRoot(root string) {
 	ZkPaths["pools"] = path.Join(root, "pools")
 	ZkPaths["rules"] = path.Join(root, "rules")
 	ZkPaths["tries"] = path.Join(root, "tries")
+	ZkPaths["ports"] = path.Join(root, "ports")
 }
 
 func PoolExists(zk *zookeeper.Conn, name string) (bool, error) {
@@ -314,6 +316,64 @@ func SetTrie(zk *zookeeper.Conn, trie config.Trie) error {
 
 func DelTrie(zk *zookeeper.Conn, name string) error {
 	zkPath := path.Join(ZkPaths["tries"], name)
+
+	stat, err := zk.Exists(zkPath)
+	if err != nil {
+		return err
+	}
+	if stat == nil {
+		return nil
+	}
+
+	err = zk.Delete(zkPath, -1)
+	return err
+}
+
+func PortExists(zk *zookeeper.Conn, name string) (bool, error) {
+	stat, err := zk.Exists(path.Join(ZkPaths["ports"], name))
+	return (stat != nil), err
+}
+
+func ListPorts(zk *zookeeper.Conn) ([]string, error) {
+	ports, _, err := zk.Children(ZkPaths["ports"])
+	return ports, err
+}
+
+func GetPort(zk *zookeeper.Conn, name string) (port config.Port, err error) {
+	zkPath := path.Join(ZkPaths["ports"], name)
+
+	jsonBlob, _, err := zk.Get(zkPath)
+	if err != nil {
+		return config.Port{}, err
+	}
+
+	err = json.Unmarshal([]byte(jsonBlob), &port)
+	return port, err
+}
+
+func SetPort(zk *zookeeper.Conn, port config.Port) error {
+	zkPath := path.Join(ZkPaths["ports"], port.Name)
+
+	jsonBlob, err := json.Marshal(port)
+	if err != nil {
+		return err
+	}
+
+	stat, err := zk.Exists(zkPath)
+	if err != nil {
+		return err
+	}
+
+	if stat == nil {
+		_, err = zk.Create(zkPath, string(jsonBlob), 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
+	} else {
+		_, err = zk.Set(zkPath, string(jsonBlob), -1)
+	}
+	return err
+}
+
+func DelPort(zk *zookeeper.Conn, name string) error {
+	zkPath := path.Join(ZkPaths["ports"], name)
 
 	stat, err := zk.Exists(zkPath)
 	if err != nil {

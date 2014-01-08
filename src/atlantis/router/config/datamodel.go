@@ -126,3 +126,25 @@ func (t Trie) StringIndent(i string) (str string) {
 func (t *Trie) String() string {
 	return t.StringIndent("")
 }
+
+type Port struct {
+	Name string
+	Port uint16
+	Trie string
+}
+
+func (p Port) Equals(o Port) bool {
+	return p.Port == o.Port
+}
+
+func (p Port) StringIndent(i string) (str string) {
+	str += fmt.Sprintf("%s--Port\n", i)
+	str += fmt.Sprintf("%s  Name : %s\n", i, p.Name)
+	str += fmt.Sprintf("%s  Port : %d\n", i, p.Port)
+	str += fmt.Sprintf("%s  Trie : %s\n", i, p.Trie)
+	return
+}
+
+func (p *Port) String() string {
+	return p.StringIndent("")
+}
