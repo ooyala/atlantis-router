@@ -1,0 +1,76 @@
+<html>
+	<head>
+		<title>Router Status</title>
+		<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>                        
+		<script src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
+		<style>
+			body {
+				font: 100%/1.45em sans-serif;
+				margin: 0;
+				padding: 10px;
+				color: #333;
+				background-color: #fff;
+			}
+
+			table { font: 80%/1.45em sans-serif; }
+			table.dataTable { padding: 10px; }
+			table.dataTable td { padding: 2px; }
+			table tr.status_ok.even { background-color: #c4ffc4; }
+			table tr.status_ok.odd { background-color: #d5ffd5; }
+			table tr.status_degraded.even { background-color: #c4c4ff; }
+			table tr.status_degraded.odd { background-color: #d5d5ff; }
+			table tr.status_critical.even { background-color: #ffc4c4; }
+			table tr.status_critical.odd { background-color: #ffd5d5; }
+
+			table.dataTable tr.odd td.sorting_1 {
+				background-color: inherit;
+				font-weight: bold;
+			}
+			table.dataTable tr.even td.sorting_1 {
+				background-color: inherit;
+				font-weight: bold;
+			}
+
+			#status_info { display: none; }
+		</style>
+		<script>
+			var columns = ["pool", "server", "requests_in_flight", "requests_serviced", "status", "status_changed"];
+			function transformStatus(json) {
+				var row = {};
+				for(var c = 0; c < columns.length; c++)
+					row[c.toString()] = json[columns[c]];
+				row["DT_RowClass"] = "status_" + json["status"].toLowerCase();
+				return row;
+			}
+			function routerStatus() {
+				$.getJSON("/statusz", function() {
+					console.log("successfully fetched /statusz")
+				})
+				.done(function(json) {
+					console.log(json);
+					<!-- jQuery DataTable -->
+					$('#status').dataTable({
+					  "aaData": json.values.map(transformStatus),
+					  "aoColumns": [
+						  {"sTitle": "Pool"},
+						  {"sTitle": "Address"},
+						  {"sTitle": "Requests In Flight"},
+						  {"sTitle": "Requests Serviced"},
+						  {"sTitle": "Status"},
+						  {"sTitle": "Status Changed"},
+						  ],
+					  "bPaginate": false,
+				  });
+				})
+				.fail(function() {
+					alert("could not fetch /statusz");
+				});
+			}
+		</script>
+	</head>
+	<body onload="routerStatus()">
+		<center><h2>Router Status</h2></center>
+		<table id="status" class="dataTable"></table>
+	</body>
+</html>

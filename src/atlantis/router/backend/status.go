@@ -14,23 +14,23 @@ const (
 
 type ServerStatus struct {
 	Current string
-	checked time.Time
-	changed time.Time
+	Checked time.Time
+	Changed time.Time
 }
 
 func NewServerStatus() ServerStatus {
 	return ServerStatus{
 		Current: StatusMaintenance,
-		checked: time.Now(),
-		changed: time.Now(),
+		Checked: time.Now(),
+		Changed: time.Now(),
 	}
 }
 
 func (s *ServerStatus) Set(status string) {
-	s.checked = time.Now()
+	s.Checked = time.Now()
 	if s.Current != status {
 		s.Current = status
-		s.changed = s.checked
+		s.Changed = s.Checked
 	}
 
 }
@@ -83,7 +83,7 @@ func (s *ServerStatus) SlowStartFactor() uint32 {
 		return 0
 	}
 
-	d := time.Now().Unix() - s.changed.Unix()
+	d := time.Now().Unix() - s.Changed.Unix()
 	f := uint32(0)
 	if d > Tstartup {
 		f = 0

@@ -30,6 +30,10 @@ type LoadBalancer struct {
 	AtlantisAppSuffixes []string
 }
 
+type StatusServer struct {
+	lb *LoadBalancer
+}
+
 func New(zkServers string) *LoadBalancer {
 	c := config.NewConfig(routing.DefaultMatcherFactory())
 
@@ -52,6 +56,12 @@ func New(zkServers string) *LoadBalancer {
 	}
 }
 
+func (l *LoadBalancer) StatusServer() *StatusServer {
+	return &StatusServer{
+		lb: l,
+	}
+}
+
 func (l *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// stamp arrival time
 	r.Header.Add("atlantis-arrival-time", fmt.Sprintf("%d", time.Now().UnixNano()))
@@ -63,15 +73,8 @@ func (l *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (l *LoadBalancer) reconfigure() {
-	zk.SetZkRoot(l.ZkRoot)
-	for {
-		<-l.zk.ResetCh
-		logger.Printf("reloading configuration")
-		go l.zk.ManageTree(zk.ZkPaths["pools"], l.poolCb, l.hostCb)
-		go l.zk.ManageTree(zk.ZkPaths["rules"], l.ruleCb)
-		go l.zk.ManageTree(zk.ZkPaths["tries"], l.trieCb)
-	}
+func (s *StatusServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.lb.config.Printer(w, r)
 }
 
 func (l *LoadBalancer) Run() {
@@ -79,6 +82,9 @@ func (l *LoadBalancer) Run() {
 
 	// configuration manager
 	go l.reconfigure()
+
+	// launch the status inspector
+	go l.StatusServer().Run()
 
 	server := &http.Server{
 		Handler:        l,
@@ -90,6 +96,27 @@ func (l *LoadBalancer) Run() {
 
 	logger.Printf("listening on %s", l.ListenAddr)
 	panic(server.ListenAndServe())
+}
+
+func (s *StatusServer) Run() {
+	server := &http.Server{
+		Handler:      s,
+		Addr:         "0.0.0.0:8080",
+		ReadTimeout:  8 * time.Second,
+		WriteTimeout: 16 * time.Second,
+	}
+	server.ListenAndServe()
+}
+
+func (l *LoadBalancer) reconfigure() {
+	zk.SetZkRoot(l.ZkRoot)
+	for {
+		<-l.zk.ResetCh
+		logger.Printf("reloading configuration")
+		go l.zk.ManageTree(zk.ZkPaths["pools"], l.poolCb, l.hostCb)
+		go l.zk.ManageTree(zk.ZkPaths["rules"], l.ruleCb)
+		go l.zk.ManageTree(zk.ZkPaths["tries"], l.trieCb)
+	}
 }
 
 type PoolCallbacks struct {
