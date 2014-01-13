@@ -15,28 +15,28 @@ func TestNewServerStatus(t *testing.T) {
 		t.Errorf("should set status to maintenance")
 	}
 
-	if status.checked.UnixNano() < tstart.UnixNano() ||
-		status.changed.UnixNano() < tstart.UnixNano() {
+	if status.Checked.UnixNano() < tstart.UnixNano() ||
+		status.Changed.UnixNano() < tstart.UnixNano() {
 		t.Errorf("should set checked and changed")
 	}
 }
 
 func TestSet(t *testing.T) {
 	status := NewServerStatus()
-	tcreate := status.changed
+	tcreate := status.Changed
 
 	status.Set(StatusCritical)
-	if status.checked.UnixNano() <= tcreate.UnixNano() ||
-		status.changed.UnixNano() <= tcreate.UnixNano() {
+	if status.Checked.UnixNano() <= tcreate.UnixNano() ||
+		status.Changed.UnixNano() <= tcreate.UnixNano() {
 		t.Errorf("should set checked and changed when changes")
 	}
-	tmodify := status.checked
+	tmodify := status.Checked
 
 	status.Set(StatusCritical)
-	if status.checked.UnixNano() <= tmodify.UnixNano() {
+	if status.Checked.UnixNano() <= tmodify.UnixNano() {
 		t.Errorf("should set checked when unchanged")
 	}
-	if status.changed.UnixNano() != tmodify.UnixNano() {
+	if status.Changed.UnixNano() != tmodify.UnixNano() {
 		t.Errorf("should not set changed when unchanged")
 	}
 }
@@ -131,7 +131,7 @@ func TestSlowStartFactor(t *testing.T) {
 		t.Errorf("should decrease monotonically")
 	}
 
-	status.changed, _ = time.Parse("1970-Jan-01", "1970-Jan-01")
+	status.Changed, _ = time.Parse("1970-Jan-01", "1970-Jan-01")
 	fact = status.SlowStartFactor()
 	if fact != 0 {
 		t.Errorf("should be zero after Kstartup")
