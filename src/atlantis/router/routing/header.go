@@ -17,6 +17,31 @@ func NewHostMatcher(r string) Matcher {
 	return &HostMatcher{r}
 }
 
+type MultiHostMatcher struct {
+	Hosts []string
+}
+
+func (m *MultiHostMatcher) Match(r *http.Request) bool {
+	for _, root := range m.Hosts {
+		if r.Host == root {
+			return true
+		}
+	}
+	return false
+}
+
+func NewMultiHostMatcher(r string) Matcher {
+	m := &MultiHostMatcher{
+		Hosts: []string{},
+	}
+	name := strings.Split(r, ":")[0]
+	doms := strings.Split(r, ":")[1]
+	for _, dom := range strings.Split(doms, ",") {
+		m.Hosts = append(m.Hosts, name+"."+dom)
+	}
+	return m
+}
+
 type HeaderMatcher struct {
 	Header     string
 	Value      string
@@ -41,23 +66,4 @@ func NewHeaderMatcher(r string) Matcher {
 	}
 
 	return &HeaderMatcher{hdrVal[0], hdrVal[1], false}
-}
-
-var AtlantisAppSuffixes = []string{}
-
-type AtlantisAppMatcher struct {
-	Prefix string
-}
-
-func (m *AtlantisAppMatcher) Match(r *http.Request) bool {
-	for _, suffix := range AtlantisAppSuffixes {
-		if r.Host == m.Prefix+"."+suffix {
-			return true
-		}
-	}
-	return false
-}
-
-func NewAtlantisAppMatcher(r string) Matcher {
-	return &AtlantisAppMatcher{Prefix: strings.TrimSuffix(r, ".")}
 }

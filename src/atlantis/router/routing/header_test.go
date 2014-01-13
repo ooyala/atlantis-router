@@ -58,10 +58,8 @@ func TestHeaderMatcherParseError(t *testing.T) {
 	}
 }
 
-func TestAtlantisAppMatcher(t *testing.T) {
-	AtlantisAppSuffixes = []string{"unicorns.org", "rainbows.org"}
-	quietWhite := NewAtlantisAppMatcher("quiet.white")
-	quietWhiteDot := NewAtlantisAppMatcher("quiet.white.")
+func TestMultiHostMatcher(t *testing.T) {
+	quietWhite := NewMultiHostMatcher("quiet.white:unicorns.org,rainbows.org")
 
 	req, _ := http.NewRequest("GET", "http://quiet.white.unicorns.org/aloha", nil)
 	if quietWhite.Match(req) != true {
@@ -90,36 +88,6 @@ func TestAtlantisAppMatcher(t *testing.T) {
 	}
 	req, _ = http.NewRequest("GET", "http://quiet.ugly.white.rainbows.org/aloha", nil)
 	if quietWhite.Match(req) != false {
-		t.Errorf("should not match")
-	}
-
-	req, _ = http.NewRequest("GET", "http://quiet.white.unicorns.org/aloha", nil)
-	if quietWhiteDot.Match(req) != true {
-		t.Errorf("should match")
-	}
-	req, _ = http.NewRequest("GET", "http://quiet.white.rainbows.org/aloha", nil)
-	if quietWhiteDot.Match(req) != true {
-		t.Errorf("should match")
-	}
-
-	req, _ = http.NewRequest("GET", "http://quiet.white.rainbowsandunicorns.org/aloha", nil)
-	if quietWhiteDot.Match(req) != false {
-		t.Errorf("should not match")
-	}
-	req, _ = http.NewRequest("GET", "http://quiet.white.ugly.unicorns.org/aloha", nil)
-	if quietWhiteDot.Match(req) != false {
-		t.Errorf("should not match")
-	}
-	req, _ = http.NewRequest("GET", "http://quiet.ugly.white.unicorns.org/aloha", nil)
-	if quietWhiteDot.Match(req) != false {
-		t.Errorf("should not match")
-	}
-	req, _ = http.NewRequest("GET", "http://quiet.white.ugly.rainbows.org/aloha", nil)
-	if quietWhiteDot.Match(req) != false {
-		t.Errorf("should not match")
-	}
-	req, _ = http.NewRequest("GET", "http://quiet.ugly.white.rainbows.org/aloha", nil)
-	if quietWhiteDot.Match(req) != false {
 		t.Errorf("should not match")
 	}
 }

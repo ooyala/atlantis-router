@@ -23,11 +23,10 @@ type LoadBalancer struct {
 	trieCb zk.EventCallbacks
 
 	// configuration
-	ZkRoot              string
-	ListenAddr          string
-	ReadTimeout         time.Duration
-	WriteTimeout        time.Duration
-	AtlantisAppSuffixes []string
+	ZkRoot       string
+	ListenAddr   string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
 }
 
 type StatusServer struct {
@@ -48,11 +47,10 @@ func New(zkServers string) *LoadBalancer {
 		trieCb: &TrieCallbacks{config: c},
 
 		// configuration
-		ZkRoot:              "/atlantis/router",
-		ListenAddr:          "0.0.0.0:80",
-		ReadTimeout:         120 * time.Second,
-		WriteTimeout:        120 * time.Second,
-		AtlantisAppSuffixes: []string{},
+		ZkRoot:       "/atlantis/router",
+		ListenAddr:   "0.0.0.0:80",
+		ReadTimeout:  120 * time.Second,
+		WriteTimeout: 120 * time.Second,
 	}
 }
 
@@ -78,8 +76,6 @@ func (s *StatusServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l *LoadBalancer) Run() {
-	routing.AtlantisAppSuffixes = l.AtlantisAppSuffixes
-
 	// configuration manager
 	go l.reconfigure()
 

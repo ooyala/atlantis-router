@@ -41,14 +41,14 @@ func (f *MatcherFactory) Make(kind, value string) (Matcher, error) {
 func DefaultMatcherFactory() *MatcherFactory {
 	return &MatcherFactory{
 		lut: map[string]matcherMaker{
-			"static":       NewStaticMatcher,
-			"percent":      NewPercentMatcher,
-			"host":         NewHostMatcher,
-			"header":       NewHeaderMatcher,
-			"path-prefix":  NewPathPrefixMatcher,
-			"path-suffix":  NewPathSuffixMatcher,
-			"path-regexp":  NewPathRegexpMatcher,
-			"atlantis-app": NewAtlantisAppMatcher,
+			"static":      NewStaticMatcher,
+			"percent":     NewPercentMatcher,
+			"host":        NewHostMatcher,
+			"multi-host":  NewMultiHostMatcher,
+			"header":      NewHeaderMatcher,
+			"path-prefix": NewPathPrefixMatcher,
+			"path-suffix": NewPathSuffixMatcher,
+			"path-regexp": NewPathRegexpMatcher,
 		},
 	}
 }
