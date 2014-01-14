@@ -4,8 +4,10 @@ import (
 	"atlantis/router/config"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"launchpad.net/gozk"
 	"path"
+	"strconv"
 )
 
 var ZkPaths map[string]string = map[string]string{
@@ -329,18 +331,29 @@ func DelTrie(zk *zookeeper.Conn, name string) error {
 	return err
 }
 
-func PortExists(zk *zookeeper.Conn, name string) (bool, error) {
-	stat, err := zk.Exists(path.Join(ZkPaths["ports"], name))
+func PortExists(zk *zookeeper.Conn, port uint16) (bool, error) {
+	stat, err := zk.Exists(path.Join(ZkPaths["ports"], fmt.Sprintf("%d", port)))
 	return (stat != nil), err
 }
 
-func ListPorts(zk *zookeeper.Conn) ([]string, error) {
+func ListPorts(zk *zookeeper.Conn) ([]uint16, error) {
 	ports, _, err := zk.Children(ZkPaths["ports"])
-	return ports, err
+	if err != nil {
+		return []uint16{}, err
+	}
+	portUints := make([]uint16, len(ports))
+	for i, portStr := range ports {
+		port, err := strconv.ParseUint(portStr, 10, 16)
+		if err != nil {
+			return []uint16{}, err
+		}
+		portUints[i] = uint16(port)
+	}
+	return portUints, nil
 }
 
-func GetPort(zk *zookeeper.Conn, name string) (port config.Port, err error) {
-	zkPath := path.Join(ZkPaths["ports"], name)
+func GetPort(zk *zookeeper.Conn, portUint uint16) (port config.Port, err error) {
+	zkPath := path.Join(ZkPaths["ports"], fmt.Sprintf("%d", portUint))
 
 	jsonBlob, _, err := zk.Get(zkPath)
 	if err != nil {
@@ -352,7 +365,7 @@ func GetPort(zk *zookeeper.Conn, name string) (port config.Port, err error) {
 }
 
 func SetPort(zk *zookeeper.Conn, port config.Port) error {
-	zkPath := path.Join(ZkPaths["ports"], port.Name)
+	zkPath := path.Join(ZkPaths["ports"], fmt.Sprintf("%d", port.Port))
 
 	jsonBlob, err := json.Marshal(port)
 	if err != nil {
@@ -372,8 +385,8 @@ func SetPort(zk *zookeeper.Conn, port config.Port) error {
 	return err
 }
 
-func DelPort(zk *zookeeper.Conn, name string) error {
-	zkPath := path.Join(ZkPaths["ports"], name)
+func DelPort(zk *zookeeper.Conn, port uint16) error {
+	zkPath := path.Join(ZkPaths["ports"], fmt.Sprintf("%d", port))
 
 	stat, err := zk.Exists(zkPath)
 	if err != nil {
