@@ -1,119 +1,12 @@
-package lb
+package router
 
 import (
 	"atlantis/router/config"
 	"atlantis/router/logger"
-	"atlantis/router/routing"
 	"atlantis/router/zk"
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"path"
-	"time"
 )
-
-type LoadBalancer struct {
-	zk     *zk.ZkConn
-	config *config.Config
-
-	// callbacks
-	poolCb zk.EventCallbacks
-	hostCb zk.EventCallbacks
-	ruleCb zk.EventCallbacks
-	trieCb zk.EventCallbacks
-
-	// configuration
-	ZkRoot       string
-	ListenAddr   string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-}
-
-type StatusServer struct {
-	lb *LoadBalancer
-}
-
-func New(zkServers string) *LoadBalancer {
-	c := config.NewConfig(routing.DefaultMatcherFactory())
-
-	logger.InitPkgLogger()
-
-	return &LoadBalancer{
-		zk:     zk.ManagedZkConn(zkServers),
-		config: c,
-		poolCb: &PoolCallbacks{config: c},
-		hostCb: &HostCallbacks{config: c},
-		ruleCb: &RuleCallbacks{config: c},
-		trieCb: &TrieCallbacks{config: c},
-
-		// configuration
-		ZkRoot:       "/atlantis/router",
-		ListenAddr:   "0.0.0.0:80",
-		ReadTimeout:  120 * time.Second,
-		WriteTimeout: 120 * time.Second,
-	}
-}
-
-func (l *LoadBalancer) StatusServer() *StatusServer {
-	return &StatusServer{
-		lb: l,
-	}
-}
-
-func (l *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// stamp arrival time
-	r.Header.Add("atlantis-arrival-time", fmt.Sprintf("%d", time.Now().UnixNano()))
-
-	if pool := l.config.Route(r); pool != nil {
-		pool.Handle(w, r)
-	} else {
-		http.Error(w, "Bad Gateway", http.StatusBadGateway)
-	}
-}
-
-func (s *StatusServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.lb.config.Printer(w, r)
-}
-
-func (l *LoadBalancer) Run() {
-	// configuration manager
-	go l.reconfigure()
-
-	// launch the status inspector
-	go l.StatusServer().Run()
-
-	server := &http.Server{
-		Handler:        l,
-		Addr:           l.ListenAddr,
-		ReadTimeout:    l.ReadTimeout,
-		WriteTimeout:   l.WriteTimeout,
-		MaxHeaderBytes: 1 << 20,
-	}
-
-	logger.Printf("listening on %s", l.ListenAddr)
-	panic(server.ListenAndServe())
-}
-
-func (s *StatusServer) Run() {
-	server := &http.Server{
-		Handler:      s,
-		Addr:         "0.0.0.0:8080",
-		ReadTimeout:  8 * time.Second,
-		WriteTimeout: 16 * time.Second,
-	}
-	server.ListenAndServe()
-}
-
-func (l *LoadBalancer) reconfigure() {
-	zk.SetZkRoot(l.ZkRoot)
-	for {
-		<-l.zk.ResetCh
-		logger.Printf("reloading configuration")
-		go l.zk.ManageTree(zk.ZkPaths["pools"], l.poolCb, l.hostCb)
-		go l.zk.ManageTree(zk.ZkPaths["rules"], l.ruleCb)
-		go l.zk.ManageTree(zk.ZkPaths["tries"], l.trieCb)
-	}
-}
 
 type PoolCallbacks struct {
 	config *config.Config
