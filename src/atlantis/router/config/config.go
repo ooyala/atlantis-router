@@ -14,14 +14,16 @@ type Config struct {
 	Pools          map[string]*backend.Pool
 	Rules          map[string]*routing.Rule
 	Tries          map[string]*routing.Trie
+	Ports          map[uint16]string
 }
 
 func NewConfig(matcherFactory *routing.MatcherFactory) *Config {
 	return &Config{
 		MatcherFactory: matcherFactory,
-		Pools:          make(map[string]*backend.Pool, 20),
-		Rules:          make(map[string]*routing.Rule, 1000),
-		Tries:          make(map[string]*routing.Trie, 100),
+		Pools:          make(map[string]*backend.Pool, 32),
+		Rules:          make(map[string]*routing.Rule, 1024),
+		Tries:          make(map[string]*routing.Trie, 128),
+		Ports:          make(map[uint16]string, 128),
 	}
 }
 
@@ -30,19 +32,27 @@ func (c *Config) RouteFrom(trie string, r *http.Request) *backend.Pool {
 	defer c.RUnlock()
 
 	var pool *backend.Pool
-
-	next := c.Tries[trie]
-	for next != nil {
-		pool, next = next.Walk(r)
-		if pool != nil {
-			return pool
+	if next, ok := c.Tries[trie]; ok {
+		for next != nil {
+			pool, next = next.Walk(r)
+			if pool != nil {
+				return pool
+			}
 		}
 	}
 	return nil
 }
 
-func (c *Config) Route(r *http.Request) *backend.Pool {
-	return c.RouteFrom("root", r)
+func (c *Config) RoutePort(port uint16, r *http.Request) *backend.Pool {
+	c.RLock()
+	trie, ok := c.Ports[port]
+	c.RUnlock()
+
+	if ok {
+		return c.RouteFrom(trie, r)
+	} else {
+		return nil
+	}
 }
 
 func (c *Config) AddPool(pool Pool) {
