@@ -128,19 +128,17 @@ func (t *Trie) String() string {
 }
 
 type Port struct {
-	Name     string
 	Port     uint16
 	Trie     string
 	Internal bool
 }
 
 func (p Port) Equals(o Port) bool {
-	return p.Name == o.Name
+	return p.Port == o.Port
 }
 
 func (p Port) StringIndent(i string) (str string) {
 	str += fmt.Sprintf("%s--Port\n", i)
-	str += fmt.Sprintf("%s  Name     : %s\n", i, p.Name)
 	str += fmt.Sprintf("%s  Internal : %t\n", i, p.Internal)
 	str += fmt.Sprintf("%s  Port     : %d\n", i, p.Port)
 	str += fmt.Sprintf("%s  Trie     : %s\n", i, p.Trie)
