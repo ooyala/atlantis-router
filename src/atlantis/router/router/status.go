@@ -9,13 +9,11 @@ import (
 
 type StatusServer struct {
 	router  *Router
-	backoff time.Duration
 }
 
 func NewStatusServer(r *Router) *StatusServer {
 	return &StatusServer{
 		router:  r,
-		backoff: 1 * time.Second,
 	}
 }
 
@@ -30,9 +28,9 @@ func (s *StatusServer) Run(port uint16, tout time.Duration) {
 		ReadTimeout:  tout,
 		WriteTimeout: tout,
 	}
-	logger.Errorf("[status server] %s", server.ListenAndServe())
 
-	// try re-launching the status server
-	s.backoff = s.backoff * 2
-	go s.Run(port, tout)
+	for {
+		logger.Errorf("[status server] %s", server.ListenAndServe())
+		time.Sleep(1*time.Second)
+	}
 }

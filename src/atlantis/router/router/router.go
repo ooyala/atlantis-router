@@ -50,8 +50,8 @@ func (r *Router) Run() {
 	// configuration manager
 	go r.reconfigure()
 
-	// launch the status inspector
-	go NewStatusServer(r).Run(8080, 8 * time.Second)
+	// launch the status inspector/server
+	NewStatusServer(r).Run(8080, 8*time.Second)
 }
 
 func (r *Router) reconfigure() {

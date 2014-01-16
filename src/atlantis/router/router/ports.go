@@ -14,10 +14,6 @@ type PortListener struct {
 }
 
 func NewPortListener(p uint16, r *Router, t string) (*PortListener, error) {
-	if _, ok := r.config.Tries[t]; !ok {
-		return nil, fmt.Errorf("%s does not exist in tries", t)
-	}
-
 	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%u", p))
 	if err != nil {
 		return nil, err
