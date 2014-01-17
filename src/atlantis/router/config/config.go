@@ -14,7 +14,7 @@ type Config struct {
 	Pools          map[string]*backend.Pool
 	Rules          map[string]*routing.Rule
 	Tries          map[string]*routing.Trie
-	Ports          map[uint16]string
+	Ports          map[uint16]*routing.Trie
 }
 
 func NewConfig(matcherFactory *routing.MatcherFactory) *Config {
@@ -23,21 +23,22 @@ func NewConfig(matcherFactory *routing.MatcherFactory) *Config {
 		Pools:          make(map[string]*backend.Pool, 32),
 		Rules:          make(map[string]*routing.Rule, 1024),
 		Tries:          make(map[string]*routing.Trie, 128),
-		Ports:          make(map[uint16]string, 128),
+		Ports:          make(map[uint16]*routing.Trie, 32),
 	}
 }
 
-func (c *Config) RouteFrom(trie string, r *http.Request) *backend.Pool {
+func (c *Config) Route(trie *routing.Trie, r *http.Request) *backend.Pool {
 	c.RLock()
 	defer c.RUnlock()
 
 	var pool *backend.Pool
-	if next, ok := c.Tries[trie]; ok {
-		for next != nil {
-			pool, next = next.Walk(r)
-			if pool != nil {
-				return pool
-			}
+	var next *routing.Trie
+
+	next = trie
+	for {
+		pool, next = next.Walk(r)
+		if pool != nil {
+			return pool
 		}
 	}
 	return nil
@@ -49,7 +50,7 @@ func (c *Config) RoutePort(port uint16, r *http.Request) *backend.Pool {
 	c.RUnlock()
 
 	if ok {
-		return c.RouteFrom(trie, r)
+		return c.Route(trie, r)
 	} else {
 		return nil
 	}
@@ -72,7 +73,6 @@ func (c *Config) AddPool(pool Pool) {
 			rule.PoolPtr = c.Pools[pool.Name]
 		}
 	}
-
 }
 
 func (c *Config) UpdatePool(pool Pool) {
@@ -128,10 +128,6 @@ func (c *Config) UpdateRule(rule Rule) {
 	c.Lock()
 	defer c.Unlock()
 
-	if _, ok := c.Rules[rule.Name]; ok {
-		delete(c.Rules, rule.Name)
-	}
-
 	c.Rules[rule.Name] = c.ConstructRule(rule)
 
 	// update references to this rule
@@ -175,15 +171,17 @@ func (c *Config) AddTrie(trie Trie) {
 			rule.NextPtr = c.Tries[trie.Name]
 		}
 	}
+
+	for num, _ := range c.Ports {
+		if c.Ports[num].Name == trie.Name {
+			c.Ports[num] = c.Tries[trie.Name]
+		}
+	}
 }
 
 func (c *Config) UpdateTrie(trie Trie) {
 	c.Lock()
 	defer c.Unlock()
-
-	if _, ok := c.Tries[trie.Name]; ok {
-		delete(c.Tries, trie.Name)
-	}
 
 	c.Tries[trie.Name] = c.ConstructTrie(trie)
 
@@ -191,6 +189,12 @@ func (c *Config) UpdateTrie(trie Trie) {
 	for _, rule := range c.Rules {
 		if rule.Next == trie.Name {
 			rule.NextPtr = c.Tries[trie.Name]
+		}
+	}
+
+	for num, _ := range c.Ports {
+		if c.Ports[num].Name == trie.Name {
+			c.Ports[num] = c.Tries[trie.Name]
 		}
 	}
 }
@@ -212,5 +216,52 @@ func (c *Config) DelTrie(name string) {
 		}
 	}
 
+	for num, _ := range c.Ports {
+		if c.Ports[num].Name == name {
+			c.Ports[num] = dummy
+		}
+	}
+
 	delete(c.Tries, name)
+}
+
+func (c *Config) AddPort(port Port) {
+	c.Lock()
+	defer c.Unlock()
+
+	if _, ok := c.Ports[port.Port]; ok {
+		logger.Errorf("port %s exists in config", port.Port)
+		return
+	}
+
+	trie, ok := c.Tries[port.Trie]
+	if !ok {
+		trie = routing.DummyTrie(port.Trie)
+		logger.Errorf("no trie %s in config", port.Trie)
+	}
+	c.Ports[port.Port] = trie
+}
+
+func (c *Config) UpdatePort(port Port) {
+	c.Lock()
+	defer c.Unlock()
+
+	trie, ok := c.Tries[port.Trie]
+	if !ok {
+		trie = routing.DummyTrie(port.Trie)
+		logger.Errorf("no trie %s in config", port.Trie)
+	}
+	c.Ports[port.Port] = trie
+}
+
+func (c *Config) DelPort(num uint16) {
+	c.Lock()
+	defer c.Unlock()
+
+	if _, ok := c.Ports[num]; !ok {
+		logger.Errorf("no port %u to delete", num)
+		return
+	}
+
+	delete(c.Ports, num)
 }
