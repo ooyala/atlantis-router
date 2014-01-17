@@ -8,12 +8,12 @@ import (
 )
 
 type StatusServer struct {
-	router  *Router
+	router *Router
 }
 
 func NewStatusServer(r *Router) *StatusServer {
 	return &StatusServer{
-		router:  r,
+		router: r,
 	}
 }
 
@@ -31,6 +31,6 @@ func (s *StatusServer) Run(port uint16, tout time.Duration) {
 
 	for {
 		logger.Errorf("[status server] %s", server.ListenAndServe())
-		time.Sleep(1*time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
