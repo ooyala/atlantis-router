@@ -27,10 +27,8 @@ func NewConfig(matcherFactory *routing.MatcherFactory) *Config {
 	}
 }
 
-func (c *Config) Route(trie *routing.Trie, r *http.Request) *backend.Pool {
-	c.RLock()
-	defer c.RUnlock()
-
+// NOTE(manas): this function must be called holding read lock on config
+func (c *Config) route(trie *routing.Trie, r *http.Request) *backend.Pool {
 	var pool *backend.Pool
 	var next *routing.Trie
 
@@ -44,13 +42,20 @@ func (c *Config) Route(trie *routing.Trie, r *http.Request) *backend.Pool {
 	return nil
 }
 
+func (c *Config) RouteTrie(trie *routing.Trie, r *http.Request) *backend.Pool {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.route(trie, r)
+}
+
 func (c *Config) RoutePort(port uint16, r *http.Request) *backend.Pool {
 	c.RLock()
-	trie, ok := c.Ports[port]
-	c.RUnlock()
+	defer c.RUnlock()
 
+	trie, ok := c.Ports[port]
 	if ok {
-		return c.Route(trie, r)
+		return c.route(trie, r)
 	} else {
 		return nil
 	}
