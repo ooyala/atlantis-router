@@ -134,6 +134,7 @@ func (p *TrieCallbacks) Changed(path, jsonBlob string) {
 
 type PortCallbacks struct {
 	config *config.Config
+	router *Router
 }
 
 func (p *PortCallbacks) Created(zkPath, jsonBlob string) {
@@ -144,6 +145,7 @@ func (p *PortCallbacks) Created(zkPath, jsonBlob string) {
 		return
 	}
 	p.config.AddPort(port)
+	p.router.AddPort(port.Port)
 }
 
 func (p *PortCallbacks) Deleted(zkPath string) {
@@ -154,6 +156,7 @@ func (p *PortCallbacks) Deleted(zkPath string) {
 		return
 	}
 	p.config.DelPort(uint16(port))
+	p.router.DelPort(uint16(port))
 }
 
 func (p *PortCallbacks) Changed(zkPath, jsonBlob string) {

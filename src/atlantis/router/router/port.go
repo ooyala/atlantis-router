@@ -1,6 +1,7 @@
-package frontend
+package router
 
 import (
+	"atlantis/router/config"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,16 +10,18 @@ import (
 
 type Port struct {
 	port     uint16
+	config   *config.Config
 	listener net.Listener
 }
 
-func NewPort(p uint16) (*PortListener, error) {
+func NewPort(p uint16, c *config.Config) (*Port, error) {
 	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%u", p))
 	if err != nil {
 		return nil, err
 	}
-	return &PortListener{
+	return &Port{
 		port:     p,
+		config:   c,
 		listener: l,
 	}, nil
 }
