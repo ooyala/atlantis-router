@@ -1,7 +1,7 @@
 package main
 
 import (
-	"atlantis/router/lb"
+	"atlantis/router/router"
 	"flag"
 	"log"
 	"log/syslog"
@@ -20,6 +20,5 @@ func main() {
 	}
 
 	flag.StringVar(&servers, "zk", "localhost:2181", "zookeeper connection string")
-	balancer := lb.New(servers)
-	balancer.Run()
+	router.New(servers).Run()
 }

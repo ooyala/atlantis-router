@@ -220,6 +220,7 @@ func TestAddTrie(t *testing.T) {
 	}()
 	config.AddTrie(rootTrie())
 	config.AddRule(meatRule())
+	config.AddPort(meatPort())
 
 	config.AddPool(butcheryPool())
 	config.AddRule(rabbitMeatRule())
@@ -243,6 +244,10 @@ func TestAddTrie(t *testing.T) {
 		t.Errorf("should update references to meat trie")
 	}
 
+	if config.Ports[8080] != config.Tries["meatTrie"] {
+		t.Errorf("should update references to meat trie")
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("should silently ignore existing trie")
@@ -260,6 +265,7 @@ func TestUpdateTrie(t *testing.T) {
 		}
 	}()
 	config.UpdateTrie(meatTrie())
+	config.AddPort(meatPort())
 
 	config.AddPool(butcheryPool())
 	config.AddRule(rabbitMeatRule())
@@ -286,6 +292,11 @@ func TestUpdateTrie(t *testing.T) {
 	if config.Rules["meatRule"].NextPtr != config.Tries["meatTrie"] {
 		t.Errorf("should update references to meat trie")
 	}
+
+	if config.Ports[8080] != config.Tries["meatTrie"] {
+		t.Errorf("should update references to meat trie")
+	}
+
 }
 
 func TestDelTrie(t *testing.T) {
@@ -301,6 +312,7 @@ func TestDelTrie(t *testing.T) {
 	config.AddTrie(meatTrie())
 	config.AddRule(meatRule())
 	config.AddTrie(rootTrie())
+	config.AddPort(meatPort())
 
 	meatTrie := config.Tries["meatTrie"]
 	config.DelTrie("meatTrie")
@@ -309,5 +321,73 @@ func TestDelTrie(t *testing.T) {
 	}
 	if config.Rules["meatRule"].NextPtr == meatTrie {
 		t.Errorf("should nil references to meat trie")
+	}
+	if config.Ports[8080] == meatTrie {
+		t.Errorf("should nil references to meat port")
+	}
+}
+
+func TestAddPort(t *testing.T) {
+	config := NewConfig(routing.DefaultMatcherFactory())
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("should silently construct ports with missing tries")
+		}
+	}()
+	config.AddPort(meatPort())
+
+	config.AddTrie(meatTrie())
+	config.AddPort(meatPort())
+
+	if config.Ports[8080] != config.Tries["meatTrie"] {
+		t.Errorf("should make port")
+	}
+}
+
+func TestUpdatePort(t *testing.T) {
+	config := NewConfig(routing.DefaultMatcherFactory())
+
+	config.AddTrie(rootTrie())
+	config.AddTrie(meatTrie())
+
+	root := rootPort()
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("should silently add non existent ports")
+		}
+	}()
+	config.UpdatePort(root)
+
+	root.Trie = "meatTrie"
+	config.UpdatePort(root)
+	if config.Ports[8081] != config.Tries["meatTrie"] {
+		t.Errorf("should upate root port")
+	}
+}
+
+func TestDelPort(t *testing.T) {
+	config := NewConfig(routing.DefaultMatcherFactory())
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("should silently ignore non existent ports")
+		}
+	}()
+	config.DelPort(uint16(8080))
+
+	config.AddTrie(rootTrie())
+	config.AddPort(rootPort())
+	config.AddTrie(meatTrie())
+	config.AddPort(meatPort())
+
+	config.DelPort(8081)
+	if _, ok := config.Ports[8081]; ok {
+		t.Errorf("should delete 8081")
+	}
+
+	if _, ok := config.Ports[8080]; !ok {
+		t.Errorf("should not delete 8080")
 	}
 }

@@ -293,3 +293,19 @@ func nabiscoPool() Pool {
 		},
 	}
 }
+
+func meatPort() Port {
+	return Port{
+		Port:     uint16(8080),
+		Trie:     "meatTrie",
+		Internal: false,
+	}
+}
+
+func rootPort() Port {
+	return Port{
+		Port:     uint16(8081),
+		Trie:     "rootTrie",
+		Internal: false,
+	}
+}
