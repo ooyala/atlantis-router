@@ -1,4 +1,4 @@
-package router
+package frontend
 
 import (
 	"fmt"
@@ -7,43 +7,42 @@ import (
 	"time"
 )
 
-type PortListener struct {
-	router   *Router
-	trie     string
+type Port struct {
+	port     uint16
 	listener net.Listener
 }
 
-func NewPortListener(p uint16, r *Router, t string) (*PortListener, error) {
+func NewPort(p uint16) (*PortListener, error) {
 	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%u", p))
 	if err != nil {
 		return nil, err
 	}
 	return &PortListener{
-		router:   r,
+		port:     p,
 		listener: l,
 	}, nil
 }
 
-func (p *PortListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (p *Port) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Header.Add("atlantis-arrival-time", fmt.Sprintf("%d", time.Now().UnixNano()))
 
-	if pool := p.router.config.RouteFrom(p.trie, r); pool != nil {
+	if pool := p.config.RoutePort(p.port, r); pool != nil {
 		pool.Handle(w, r)
 	} else {
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 	}
 }
 
-func (p *PortListener) Run(r_tout, w_tout time.Duration) {
+func (p *Port) Run(rout, wout time.Duration) {
 	server := http.Server{
 		Handler:        p,
-		ReadTimeout:    r_tout,
-		WriteTimeout:   w_tout,
+		ReadTimeout:    rout,
+		WriteTimeout:   wout,
 		MaxHeaderBytes: 1 << 20,
 	}
 	server.Serve(p.listener)
 }
 
-func (p *PortListener) Shutdown() {
+func (p *Port) Shutdown() {
 	p.listener.Close()
 }

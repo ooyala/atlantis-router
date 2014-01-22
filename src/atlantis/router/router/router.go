@@ -13,11 +13,11 @@ type Router struct {
 	config *config.Config
 
 	// callbacks
-	poolCb zk.EventCallbacks
-	hostCb zk.EventCallbacks
-	ruleCb zk.EventCallbacks
-	trieCb zk.EventCallbacks
-	portCb zk.EventCallbacks
+	poolCallbacks zk.EventCallbacks
+	hostCallbacks zk.EventCallbacks
+	ruleCallbacks zk.EventCallbacks
+	trieCallbacks zk.EventCallbacks
+	portCallbacks zk.EventCallbacks
 
 	// configuration
 	ZkRoot       string
@@ -26,21 +26,24 @@ type Router struct {
 }
 
 func New(zkServers string) *Router {
-	// everything underneath uses atlantis/logger
+	// all packages use atlantis/logger's global logger
 	logger.InitPkgLogger()
 
 	c := config.NewConfig(routing.DefaultMatcherFactory())
 	return &Router{
+		// zookeeper connection
+		ZkRoot: "/atlantis/router",
 		zk:     zk.ManagedZkConn(zkServers),
-		config: c,
-		poolCb: &PoolCallbacks{config: c},
-		hostCb: &HostCallbacks{config: c},
-		ruleCb: &RuleCallbacks{config: c},
-		trieCb: &TrieCallbacks{config: c},
-		portCb: nil,
 
-		// configuration
-		ZkRoot:       "/atlantis/router",
+		// configuration management
+		config:        c,
+		poolCallbacks: &PoolCallbacks{config: c},
+		hostCallbacks: &HostCallbacks{config: c},
+		ruleCallbacks: &RuleCallbacks{config: c},
+		trieCallbacks: &TrieCallbacks{config: c},
+		portCallbacks: &PortCallbacks{config: c},
+
+		// global read & write timeouts
 		ReadTimeout:  120 * time.Second,
 		WriteTimeout: 120 * time.Second,
 	}
@@ -50,7 +53,7 @@ func (r *Router) Run() {
 	// configuration manager
 	go r.reconfigure()
 
-	// launch the status inspector/server
+	// launch the statusz and debug server
 	NewStatusServer(r).Run(8080, 8*time.Second)
 }
 
@@ -59,9 +62,9 @@ func (r *Router) reconfigure() {
 	for {
 		<-r.zk.ResetCh
 		logger.Printf("reloading configuration")
-		go r.zk.ManageTree(zk.ZkPaths["pools"], r.poolCb, r.hostCb)
-		go r.zk.ManageTree(zk.ZkPaths["rules"], r.ruleCb)
-		go r.zk.ManageTree(zk.ZkPaths["tries"], r.trieCb)
-		go r.zk.ManageTree(zk.ZkPaths["ports"], r.portCb)
+		go r.zk.ManageTree(zk.ZkPaths["pools"], r.poolCallbacks, r.hostCallbacks)
+		go r.zk.ManageTree(zk.ZkPaths["rules"], r.ruleCallbacks)
+		go r.zk.ManageTree(zk.ZkPaths["tries"], r.trieCallbacks)
+		go r.zk.ManageTree(zk.ZkPaths["ports"], r.portCallbacks)
 	}
 }

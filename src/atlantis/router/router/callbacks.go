@@ -6,6 +6,7 @@ import (
 	"atlantis/router/zk"
 	"encoding/json"
 	"path"
+	"strconv"
 )
 
 type PoolCallbacks struct {
@@ -122,11 +123,45 @@ func (p *TrieCallbacks) Deleted(zkPath string) {
 }
 
 func (p *TrieCallbacks) Changed(path, jsonBlob string) {
-	logger.Debugf("TrieCallback.Changed(%s, %s)", path, jsonBlob)
+	logger.Debugf("TrieCallbacks.Changed(%s, %s)", path, jsonBlob)
 	var trie config.Trie
 	if err := json.Unmarshal([]byte(jsonBlob), &trie); err != nil {
 		logger.Errorf("%s unmarshalling %s as trie", err.Error(), jsonBlob)
 		return
 	}
 	p.config.UpdateTrie(trie)
+}
+
+type PortCallbacks struct {
+	config *config.Config
+}
+
+func (p *PortCallbacks) Created(zkPath, jsonBlob string) {
+	logger.Debugf("PortCallbacks.Created(%s, %s)", zkPath, jsonBlob)
+	var port config.Port
+	if err := json.Unmarshal([]byte(jsonBlob), &port); err != nil {
+		logger.Errorf("%s unmarshalling %s as port", err.Error(), jsonBlob)
+		return
+	}
+	p.config.AddPort(port)
+}
+
+func (p *PortCallbacks) Deleted(zkPath string) {
+	logger.Debugf("PortCallbacks.Deleted(%s)", zkPath)
+	port, err := strconv.ParseUint(path.Base(zkPath), 10, 16)
+	if err != nil {
+		logger.Errorf("%s interpreting base of %s as uint16", err.Error(), zkPath)
+		return
+	}
+	p.config.DelPort(uint16(port))
+}
+
+func (p *PortCallbacks) Changed(zkPath, jsonBlob string) {
+	logger.Debugf("PortCallbacks.Changed(%s)", zkPath, jsonBlob)
+	var port config.Port
+	if err := json.Unmarshal([]byte(jsonBlob), &port); err != nil {
+		logger.Errorf("%s unmarshalling %s as port", err.Error(), jsonBlob)
+		return
+	}
+	p.config.UpdatePort(port)
 }
