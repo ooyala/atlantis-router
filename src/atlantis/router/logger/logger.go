@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 type Logger struct {
@@ -18,7 +19,7 @@ func New() *Logger {
 		sigCh:   make(chan os.Signal),
 		killCh:  make(chan bool),
 	}
-	signal.Notify(logger.sigCh, os.Interrupt)
+	signal.Notify(logger.sigCh, syscall.SIGHUP)
 
 	go logger.monitor()
 
