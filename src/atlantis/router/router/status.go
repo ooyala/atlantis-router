@@ -24,7 +24,7 @@ func (s *StatusServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *StatusServer) Run(port uint16, tout time.Duration) {
 	server := http.Server{
 		Handler:      s,
-		Addr:         fmt.Sprintf("0.0.0.0:%u", port),
+		Addr:         fmt.Sprintf("0.0.0.0:%d", port),
 		ReadTimeout:  tout,
 		WriteTimeout: tout,
 	}
