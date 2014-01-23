@@ -9,13 +9,15 @@ import (
 )
 
 type Router struct {
+	// zookeeper connection
 	zk     *zk.ZkConn
-	config *config.Config
+	ZkRoot string
 
 	// ports to listen
 	ports map[uint16]*Port
 
-	// callbacks
+	// configuration management
+	config        *config.Config
 	poolCallbacks zk.EventCallbacks
 	hostCallbacks zk.EventCallbacks
 	ruleCallbacks zk.EventCallbacks
@@ -23,7 +25,6 @@ type Router struct {
 	portCallbacks zk.EventCallbacks
 
 	// configuration
-	ZkRoot       string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 }
@@ -34,18 +35,17 @@ func New(zkServers string) *Router {
 
 	c := config.NewConfig(routing.DefaultMatcherFactory())
 	r := &Router{
-		// zookeeper connection
 		ZkRoot: "/atlantis/router",
 		zk:     zk.ManagedZkConn(zkServers),
 
-		// configuration management
+		ports: map[uint16]*Port{},
+
 		config:        c,
 		poolCallbacks: &PoolCallbacks{config: c},
 		hostCallbacks: &HostCallbacks{config: c},
 		ruleCallbacks: &RuleCallbacks{config: c},
 		trieCallbacks: &TrieCallbacks{config: c},
 
-		// global read & write timeouts
 		ReadTimeout:  120 * time.Second,
 		WriteTimeout: 120 * time.Second,
 	}
