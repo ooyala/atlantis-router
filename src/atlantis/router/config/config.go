@@ -32,8 +32,7 @@ func (c *Config) route(trie *routing.Trie, r *http.Request) *backend.Pool {
 	var pool *backend.Pool
 	var next *routing.Trie
 
-	next = trie
-	for {
+	for next = trie; next != nil; {
 		pool, next = next.Walk(r)
 		if pool != nil {
 			return pool
