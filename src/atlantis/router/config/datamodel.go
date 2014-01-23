@@ -61,7 +61,7 @@ func (p Pool) Equals(o Pool) bool {
 func (p Pool) StringIndent(i string) (str string) {
 	str += fmt.Sprintf("%s--Pool\n", i)
 	str += fmt.Sprintf("%s  Name     : %s\n", i, p.Name)
-	str += fmt.Sprintf("%s  Internal : %s\n", i, p.Internal)
+	str += fmt.Sprintf("%s  Internal : %t\n", i, p.Internal)
 	str += fmt.Sprintf("%s  --Hosts\n", i)
 	for name, host := range p.Hosts {
 		str += fmt.Sprintf("%s    %s : %s\n", i, name, host.Address)
