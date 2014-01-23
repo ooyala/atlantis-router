@@ -15,7 +15,7 @@ type Port struct {
 }
 
 func NewPort(p uint16, c *config.Config) (*Port, error) {
-	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%u", p))
+	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", p))
 	if err != nil {
 		return nil, err
 	}
