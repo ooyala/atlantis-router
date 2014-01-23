@@ -15,6 +15,7 @@ func DummyTrie(name string) *Trie {
 	return &Trie{
 		Name:  name,
 		Dummy: true,
+		List:  []*Rule{},
 	}
 }
 
