@@ -83,6 +83,7 @@ func (r *Router) AddPort(p uint16) {
 		return
 	}
 	r.ports[p] = port
+	go port.Run()
 }
 
 func (r *Router) DelPort(p uint16) {
