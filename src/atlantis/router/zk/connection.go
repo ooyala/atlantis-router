@@ -38,7 +38,7 @@ func (z *ZkConn) dialExclusive() {
 	z.Lock()
 
 	for err := z.dial(); err != nil; {
-		logger.Printf("[zkconn %d] z.dial(): %s", z, err)
+		logger.Printf("[zkconn %p] z.dial(): %s", z, err)
 	}
 
 	z.Unlock()
@@ -66,7 +66,7 @@ func (z *ZkConn) dial() error {
 func (z *ZkConn) waitOnConnect() error {
 	for {
 		ev := <-z.eventCh
-		logger.Printf("[zkconn %d] eventCh-> %d %s in waitOnConnect", z, ev.State, ev)
+		logger.Printf("[zkconn %p] eventCh-> %d %s in waitOnConnect", z, ev.State, ev)
 
 		switch ev.State {
 		case zookeeper.STATE_CONNECTED:
@@ -83,7 +83,7 @@ func (z *ZkConn) monitorEventCh() {
 	for {
 		select {
 		case ev := <-z.eventCh:
-			logger.Printf("[zkconn %d] eventCh -> %d %s in monitorEventCh", ev.State, ev)
+			logger.Printf("[zkconn %p] eventCh -> %d %s in monitorEventCh", z, ev.State, ev)
 			if ev.State == zookeeper.STATE_EXPIRED_SESSION ||
 				ev.State == zookeeper.STATE_CONNECTING {
 				z.dialExclusive()
