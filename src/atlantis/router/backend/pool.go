@@ -112,7 +112,7 @@ func (p *Pool) Handle(w http.ResponseWriter, r *http.Request) {
 	server := p.Next()
 	if server == nil {
 		// reachable when all servers in pool report StatusMaintenance
-		logger.Printf("[pool %s] no server")
+		logger.Printf("[pool %s] no server", p.Name)
 		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
 		return
 	}
