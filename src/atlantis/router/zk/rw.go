@@ -176,6 +176,10 @@ func AddHosts(zk *zookeeper.Conn, pool string, hosts map[string]config.Host) err
 }
 
 func DelHosts(zk *zookeeper.Conn, pool string, hosts []string) error {
+	if len(hosts) == 0 {
+		return nil
+	}
+
 	zkPath := path.Join(ZkPaths["pools"], pool)
 
 	stat, err := zk.Exists(zkPath)
@@ -197,7 +201,7 @@ func DelHosts(zk *zookeeper.Conn, pool string, hosts []string) error {
 	}
 
 	for name, _ := range zkHosts {
-		if !hostsToDel[name] && len(hosts) > 0 {
+		if !hostsToDel[name] {
 			// we were given a list of hosts, and
 			// this host was not a member of that
 			// list...
