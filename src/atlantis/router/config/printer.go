@@ -50,13 +50,13 @@ func (c *Config) PrintRouting(w http.ResponseWriter, r *http.Request) {
 
 // Serialization expected by the javascript which displays status information, and
 // also by services polling /statusz to monitor health of routers and pools.
-type status struct {
-	pool               string
-	server             string
-	requests_in_flight uint32
-	requests_serviced  uint64
-	status             string
-	status_changed     string
+type Status struct {
+	Pool             string `json:"pool"`
+	Server           string `json:"server"`
+	RequestsInFlight uint32 `json:"requests_in_flight"`
+	RequestsServiced uint64 `json:"requests_serviced"`
+	Status           string `json:"status"`
+	StatusChanged    string `json:"status_changed"`
 }
 
 func (c *Config) PrintStatus(w http.ResponseWriter, r *http.Request) {
@@ -66,13 +66,13 @@ func (c *Config) PrintStatus(w http.ResponseWriter, r *http.Request) {
 		c.RLock()
 		for _, pool := range c.Pools {
 			for _, server := range pool.Servers {
-				s := status{
-					pool:               pool.Name,
-					server:             server.Address,
-					requests_in_flight: server.Metrics.RequestsInFlight,
-					requests_serviced:  server.Metrics.RequestsServiced,
-					status:             server.Status.Current,
-					status_changed:     fmt.Sprintf("%s", server.Status.Changed),
+				s := Status{
+					Pool:               pool.Name,
+					Server:             server.Address,
+					RequestsInFlight: server.Metrics.RequestsInFlight,
+					RequestsServiced:  server.Metrics.RequestsServiced,
+					Status:             server.Status.Current,
+					StatusChanged:     fmt.Sprintf("%s", server.Status.Changed),
 				}
 				response = append(response, s)
 			}
