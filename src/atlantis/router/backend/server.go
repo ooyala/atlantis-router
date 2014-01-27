@@ -121,7 +121,7 @@ func (s *Server) CheckStatus(tout time.Duration) {
 	select {
 	case resErr := <-resErrCh:
 		if resErr.Error == nil {
-			logger.Errorf("%s %d", s.logPrefix(r, tstart), resErr.Response.StatusCode)
+			logger.Printf("%s %d", s.logPrefix(r, tstart), resErr.Response.StatusCode)
 			defer resErr.Response.Body.Close()
 			s.Status.ParseAndSet(resErr.Response)
 		} else {
