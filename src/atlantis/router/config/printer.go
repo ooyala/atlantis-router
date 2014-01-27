@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // This leaks the abstractions of routing.Trie.Walk() and config.Route()
@@ -59,7 +60,7 @@ type status struct {
 }
 
 func (c *Config) PrintStatus(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("accept") == "application/json" {
+	if strings.Contains(r.Header.Get("Accept"), "application/json") {
 		var response []status
 
 		c.RLock()
