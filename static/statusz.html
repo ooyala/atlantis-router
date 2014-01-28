@@ -51,7 +51,7 @@
 					console.log(json);
 					<!-- jQuery DataTable -->
 					$('#status').dataTable({
-					  "aaData": json.values.map(transformStatus),
+					  "aaData": json.map(transformStatus),
 					  "aoColumns": [
 						  {"sTitle": "Pool"},
 						  {"sTitle": "Address"},
