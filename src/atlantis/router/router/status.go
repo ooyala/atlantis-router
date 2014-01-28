@@ -35,7 +35,7 @@ func (s *StatusServer) StatusZJSON(w http.ResponseWriter, r *http.Request) {
 
 func (s *StatusServer) PrintRouting(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	w.Header().Add("content-type", "application/plain")
+	w.Header().Add("content-type", "text/plain")
 
 	// modify request to get rid of /port
 	r.URL.Path = strings.Replace(r.URL.Path, "/"+vars["port"], "", 1)
