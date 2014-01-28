@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -32,15 +34,26 @@ func (s *StatusServer) StatusZJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *StatusServer) PrintRouting(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 	w.Header().Add("content-type", "application/plain")
 
+	// modify request to get rid of /port
+	r.URL.Path = strings.Replace(r.URL.Path, "/"+vars["port"], "", 1)
+	r.RequestURI = strings.Replace(r.RequestURI, "/"+vars["port"], "", 1)
+
+	port, err := strconv.ParseUint(vars["port"], 10, 16)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("{\"error\": \"%s\"}", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, s.router.config.PrintRouting(uint16(port), r))
 }
 
 func (s *StatusServer) Run(port uint16, tout time.Duration) {
 	gmux := mux.NewRouter()
 	gmux.HandleFunc("/statusz", s.StatusZ).Methods("GET")
 	gmux.HandleFunc("/statusz.json", s.StatusZJSON).Methods("GET")
-	gmux.HandleFunc("/{port:[0-9]+}/", s.PrintRouting).Methods("GET")
+	gmux.PathPrefix("/{port:[0-9]+}").HandlerFunc(s.PrintRouting)
 
 	server := http.Server{
 		Handler:      gmux,

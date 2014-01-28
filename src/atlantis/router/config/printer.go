@@ -16,10 +16,10 @@ func (c *Config) PrintRouting(port uint16, r *http.Request) string {
 	var next *routing.Trie
 	var pool *backend.Pool
 
-	var indent string
-	var output string
+	output := fmt.Sprintf("port %d\n", port)
+	indent := "  "
 
-	next = c.Tries["root"]
+	next = c.Ports[port]
 	for next != nil {
 		if pool != nil {
 			output += fmt.Sprintf("%spool %s\n", indent, pool.Name)
@@ -27,7 +27,7 @@ func (c *Config) PrintRouting(port uint16, r *http.Request) string {
 		} else {
 			output += fmt.Sprintf("%strie %s\n", indent, next.Name)
 		}
-		indent += "    "
+		indent += "  "
 
 		for _, rule := range next.List {
 			if rule.Dummy {
