@@ -1,7 +1,7 @@
 <html>
 	<head>
 		<title>Router Status</title>
-		<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>                        
+		<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
 		<script src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 		<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
 		<style>
@@ -44,7 +44,7 @@
 				return row;
 			}
 			function routerStatus() {
-				$.getJSON("/statusz", function() {
+				$.getJSON("/statusz.json", function() {
 					console.log("successfully fetched /statusz")
 				})
 				.done(function(json) {
@@ -63,8 +63,9 @@
 					  "bPaginate": false,
 				  });
 				})
-				.fail(function() {
-					alert("could not fetch /statusz");
+				.fail(function(data) {
+					console.log("could not fetch /statusz");
+					console.log(data);
 				});
 			}
 		</script>
