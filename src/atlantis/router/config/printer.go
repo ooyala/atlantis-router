@@ -31,7 +31,7 @@ func (c *Config) PrintRouting(port uint16, r *http.Request) string {
 	indent := "  "
 
 	next = c.Ports[port]
-	for next != nil {
+	for next != nil || pool != nil {
 		if pool != nil {
 			output += fmt.Sprintf("%spool %s\n", indent, pool.Name)
 			return output
@@ -49,8 +49,10 @@ func (c *Config) PrintRouting(port uint16, r *http.Request) string {
 				break
 			} else {
 				output += fmt.Sprintf("%srule %s F\n", indent, rule.Name)
+				pool, next = nil, nil
 			}
 		}
 	}
+	fmt.Sprintf("%snext = nil, pool = nil!\n", indent)
 	return output
 }

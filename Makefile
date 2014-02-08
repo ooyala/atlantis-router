@@ -27,6 +27,7 @@ install-deps:
 	@mkdir -p $(VENDOR_PATH) || exit 2
 	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gozk
 	@GOPATH=$(VENDOR_PATH) go get code.google.com/p/go.tools/cmd/cover
+	@GOPATH=$(VENDOR_PATH) go get github.com/gorilla/mux
 	@echo "Done."
 
 test:
