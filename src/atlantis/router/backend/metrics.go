@@ -11,6 +11,10 @@
 
 package backend
 
+import(
+	"sync/atomic"
+)
+
 type ServerMetrics struct {
 	RequestsInFlight uint32
 	RequestsServiced uint64
@@ -24,12 +28,12 @@ func NewServerMetrics() ServerMetrics {
 }
 
 func (s *ServerMetrics) RequestStart() {
-	s.RequestsInFlight++
+	atomic.AddUint32(&s.RequestsInFlight, uint32(1))
 	s.RequestsServiced++
 }
 
 func (s *ServerMetrics) RequestDone() {
-	s.RequestsInFlight--
+	atomic.AddUint32(&s.RequestsInFlight, ^uint32(0))
 }
 
 func (s *ServerMetrics) Cost() uint32 {
