@@ -57,6 +57,10 @@ func (s *StatusServer) PrintRouting(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("{\"error\": \"%s\"}", err.Error()), http.StatusInternalServerError)
 		return
 	}
+	if port == 80 {
+		// strip port out of host if it is 80
+		r.Header.Set("Host", strings.SplitN(r.Header.Get("Host"), ":", 2)[0])
+	}
 	fmt.Fprintf(w, s.router.config.PrintRouting(uint16(port), r))
 }
 
