@@ -21,7 +21,7 @@ type HostMatcher struct {
 }
 
 func (h *HostMatcher) Match(r *http.Request) bool {
-	return strings.Split(r.Host, ":")[0] == h.Host
+	return strings.SplitN(r.Host, ":", 1)[0] == h.Host
 }
 
 func NewHostMatcher(r string) Matcher {
