@@ -60,6 +60,9 @@ func (s *StatusServer) PrintRouting(w http.ResponseWriter, r *http.Request) {
 	if port == 80 {
 		// strip port out of host if it is 80
 		r.Header.Set("Host", strings.SplitN(r.Header.Get("Host"), ":", 2)[0])
+	} else {
+		// replace port if it is not 80
+		r.Header.Set("Host", strings.SplitN(r.Header.Get("Host"), ":", 2)[0] + ":" + vars["port"])
 	}
 	fmt.Fprintf(w, s.router.config.PrintRouting(uint16(port), r))
 }
