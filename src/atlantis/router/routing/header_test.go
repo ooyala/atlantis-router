@@ -24,6 +24,12 @@ func TestHostMatcher(t *testing.T) {
 		t.Errorf("should match")
 	}
 
+	req, _ = http.NewRequest("GET", "http://white.unicorns.org/magic:8080", nil)
+
+	if matcher.Match(req) != true {
+		t.Errorf("should match")
+	}
+
 	matcher = NewHostMatcher("pink.unicorns.org")
 	if matcher.Match(req) == true {
 		t.Errorf("should not match")
