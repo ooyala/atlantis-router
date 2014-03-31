@@ -117,6 +117,7 @@ func (s *Server) Handle(w http.ResponseWriter, r *http.Request, tout time.Durati
 			http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		}
 	case <-time.After(tout):
+		s.Transport.CancelRequest(r)
 		logger.Printf("%s timeout", s.logPrefix(r, tstart))
 		http.Error(w, "Gateway Timeout", http.StatusGatewayTimeout)
 	}
