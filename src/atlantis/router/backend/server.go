@@ -54,9 +54,6 @@ func (s *Server) RoundTrip(req *http.Request, ch chan ResponseError) {
 		}
 	}()
 
-	s.Metrics.RequestStart()
-	defer s.Metrics.RequestDone()
-
 	req.URL.Scheme = "http"
 	req.URL.Host = s.Address
 
@@ -89,6 +86,9 @@ func (s *Server) logPrefix(r *http.Request, tstart time.Time) string {
 }
 
 func (s *Server) Handle(w http.ResponseWriter, r *http.Request, tout time.Duration) {
+	s.Metrics.RequestStart()
+	defer s.Metrics.RequestDone()
+
 	// X-Forwarded-For; we are a proxy.
 	ip := strings.Split(r.RemoteAddr, ":")[0]
 	r.Header.Add("X-Forwarded-For", ip)
