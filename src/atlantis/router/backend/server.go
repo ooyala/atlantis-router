@@ -141,6 +141,7 @@ func (s *Server) CheckStatus(tout time.Duration) {
 			s.Status.Set(StatusCritical)
 		}
 	case <-time.After(tout):
+		s.Transport.CancelRequest(r)
 		logger.Errorf("%s timeout", s.logPrefix(r, tstart))
 		s.Status.Set(StatusCritical)
 	}
