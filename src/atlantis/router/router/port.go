@@ -11,7 +11,9 @@
 
 package router
 
+//TODO: pull metrics out of backend or put them in config or something
 import (
+	"atlantis/router/backend"
 	"atlantis/router/config"
 	"fmt"
 	"net"
@@ -23,6 +25,7 @@ type Port struct {
 	port     uint16
 	config   *config.Config
 	listener net.Listener
+	Metrics  ConMetrics
 }
 
 func NewPort(p uint16, c *config.Config) (*Port, error) {
@@ -34,17 +37,21 @@ func NewPort(p uint16, c *config.Config) (*Port, error) {
 		port:     p,
 		config:   c,
 		listener: l,
+		Metrics:  NewConMetrics(),
 	}, nil
 }
 
 func (p *Port) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	r.Header.Add("atlantis-arrival-time", fmt.Sprintf("%d", time.Now().UnixNano()))
-
+	enterTime := time.Now()
+	r.Header.Add("atlantis-arrival-time", fmt.Sprintf("%d", enterTime.UnixNano()))
+	r.Metrics.ConnectionStart()
+	logRecord := NewHAProxyLogRecord(w, r, p.port, r.Metrics.GetActiveConnections, enterTime)
 	if pool := p.config.RoutePort(p.port, r); pool != nil {
-		pool.Handle(w, r)
+		pool.Handle(&logRecord)
 	} else {
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 	}
+	r.Metrics.ConnectionDone()
 }
 
 func (p *Port) Run(rout, wout time.Duration) {

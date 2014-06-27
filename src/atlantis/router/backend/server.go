@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"os"
 )
 
 type Server struct {
@@ -85,44 +86,45 @@ func (s *Server) logPrefix(r *http.Request, tstart time.Time) string {
 		r.URL, rtt0, rtt1)
 }
 
-func (s *Server) Handle(w http.ResponseWriter, r *http.Request, tout time.Duration) {
+func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) {
 	s.Metrics.RequestStart()
 	defer s.Metrics.RequestDone()
 
 	// X-Forwarded-For; we are a proxy.
-	ip := strings.Split(r.RemoteAddr, ":")[0]
-	r.Header.Add("X-Forwarded-For", ip)
-
+	ip := strings.Split(logRecord.Request.RemoteAddr, ":")[0]
+	logRecord.Request.Header.Add("X-Forwarded-For", ip)
+	logRecord.ServerUpdateRecord("", s.Metrics.RequestsServiced, s.Metrics.Cost())
 	resErrCh := make(chan ResponseError)
 	tstart := time.Now()
-	go s.RoundTrip(r, resErrCh)
+	go s.RoundTrip(logRecord.Request, resErrCh)
 
 	select {
 	case resErr := <-resErrCh:
 		if resErr.Error == nil {
-			logger.Printf("%s %d", s.logPrefix(r, tstart), resErr.Response.StatusCode)
+			logger.Printf("%s %d", s.logPrefix(logRecord.Request, tstart), resErr.Response.StatusCode)
 			defer resErr.Response.Body.Close()
 			for hdr, vals := range resErr.Response.Header {
 				for _, val := range vals {
-					w.Header().Add(hdr, val)
+					logRecord.ResponseWriter.Header().Add(hdr, val)
 				}
 			}
-			w.WriteHeader(resErr.Response.StatusCode)
-			_, err := s.copier.Copy(w, resErr.Response.Body)
+			logRecord.ResponseWriter.WriteHeader(resErr.Response.StatusCode)
+			_, err := s.copier.Copy(logRecord.ResponseWriter, resErr.Response.Body)
 			if err != nil {
-				logger.Errorf("%s %s", s.logPrefix(r, tstart), err)
+				logger.Errorf("%s %s", s.logPrefix(logRecord.Request, tstart), err)
+			} else {
+				logRecord.Log(os.Stdout)
 			}
 		} else {
-			logger.Errorf("%s %s", s.logPrefix(r, tstart), resErr.Error)
-			http.Error(w, "Bad Gateway", http.StatusBadGateway)
+			logger.Errorf("%s %s", s.logPrefix(logRecord.Request, tstart), resErr.Error)
+			logRecord.SetResponseStatusCode(http.StatusBadGateway)
 		}
 	case <-time.After(tout):
-		s.Transport.CancelRequest(r)
-		logger.Printf("%s timeout", s.logPrefix(r, tstart))
-		http.Error(w, "Gateway Timeout", http.StatusGatewayTimeout)
+		s.Transport.CancelRequest(logRecord.Request)
+		logger.Printf("%s timeout", s.logPrefix(logRecord.Request, tstart))
+		logRecord.SetResponseStatusCode(http.StatusGatewayTimeout)
 	}
 }
-
 func (s *Server) CheckStatus(tout time.Duration) {
 	r, _ := http.NewRequest("GET", "http://"+s.Address+"/healthz", nil)
 
