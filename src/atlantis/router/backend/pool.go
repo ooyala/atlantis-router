@@ -30,7 +30,7 @@ type Pool struct {
 	Servers map[string]*Server
 	Config  PoolConfig
 	killCh  chan bool
-	Metrics	ConMetrics
+	Metrics	ConnectionMetrics
 }
 
 func DummyPool(name string) *Pool {
@@ -47,7 +47,7 @@ func NewPool(name string, config PoolConfig) *Pool {
 		Servers: map[string]*Server{},
 		Config:  config,
 		killCh:  make(chan bool),
-		Metrics: NewConMetrics(),
+		Metrics: NewConnectionMetrics(),
 	}
 
 	go pool.RunChecks()
@@ -117,7 +117,8 @@ func (p Pool) Next() *Server {
 func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 	if p.Dummy {
 		logger.Printf("[pool %s] Dummy", p.Name)	
-		logRecord.SetResponseStatusCode(http.StatusBadGateway)
+		logRecord.SetResponseStatusCode(http.StatusBadGateway)	
+		logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
 		return
 	}
 	p.Metrics.ConnectionStart()
@@ -127,7 +128,7 @@ func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 	if server == nil {
 		// reachable when all servers in pool report StatusMaintenance
 		logger.Printf("[pool %s] no server", p.Name)
-		logRecord.SetResponseStatusCode(http.StatusServiceUnavailable)
+		logRecord.Error(logger.ServiceUnavailableMsg, http.StatusServiceUnavailable)
 		return
 	}
 	logRecord.PoolUpdateRecord(p.Name, p.Metrics.GetActiveConnections(), p.Metrics.GetTotalConnections())

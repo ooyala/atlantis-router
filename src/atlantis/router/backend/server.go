@@ -27,7 +27,6 @@ type Server struct {
 	Status    ServerStatus
 	Metrics   ServerMetrics
 	Transport *http.Transport
-	copier    *Copier
 }
 
 func NewServer(address string) *Server {
@@ -38,7 +37,6 @@ func NewServer(address string) *Server {
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost: 32,
 		},
-		copier: NewCopier(),
 	}
 }
 
@@ -103,13 +101,11 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 		if resErr.Error == nil {
 			logger.Printf("%s %d", s.logPrefix(logRecord.Request, tstart), resErr.Response.StatusCode)
 			defer resErr.Response.Body.Close()
-			for hdr, vals := range resErr.Response.Header {
-				for _, val := range vals {
-					logRecord.ResponseWriter.Header().Add(hdr, val)
-				}
-			}
-			logRecord.ResponseWriter.WriteHeader(resErr.Response.StatusCode)
-			_, err := s.copier.Copy(logRecord.ResponseWriter, resErr.Response.Body)
+
+			logRecord.AddResponseHeaderMap(resErr.Response.Header)
+			logRecord.SetResponseStatusCode(resErr.Response.StatusCode)	
+
+			err := logRecord.Copy(resErr.Response.Body)
 			if err != nil {
 				logger.Errorf("%s %s", s.logPrefix(logRecord.Request, tstart), err)
 			} else {
@@ -117,12 +113,12 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 			}
 		} else {
 			logger.Errorf("%s %s", s.logPrefix(logRecord.Request, tstart), resErr.Error)
-			logRecord.SetResponseStatusCode(http.StatusBadGateway)
+			logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
 		}
 	case <-time.After(tout):
 		s.Transport.CancelRequest(logRecord.Request)
 		logger.Printf("%s timeout", s.logPrefix(logRecord.Request, tstart))
-		logRecord.SetResponseStatusCode(http.StatusGatewayTimeout)
+		logRecord.Error(logger.GatewayTimeoutMsg, http.StatusGatewayTimeout)
 	}
 }
 func (s *Server) CheckStatus(tout time.Duration) {
@@ -154,5 +150,7 @@ func (s *Server) Cost(accept string) uint32 {
 }
 
 func (s *Server) Shutdown() {
-	s.copier.Shutdown()
+//TODO previously they shut down the copier here
+//but now that the copier is a statics to the HAProxyLog package 
+//dunno where exactly to shut down probably when router shuts down
 }

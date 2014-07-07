@@ -25,7 +25,7 @@ type Port struct {
 	port     uint16
 	config   *config.Config
 	listener net.Listener
-	Metrics  ConMetrics
+	Metrics  ConnectionMetrics
 }
 
 func NewPort(p uint16, c *config.Config) (*Port, error) {
@@ -37,7 +37,7 @@ func NewPort(p uint16, c *config.Config) (*Port, error) {
 		port:     p,
 		config:   c,
 		listener: l,
-		Metrics:  NewConMetrics(),
+		Metrics:  NewConnectionMetrics(),
 	}, nil
 }
 

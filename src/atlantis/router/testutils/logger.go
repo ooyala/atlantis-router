@@ -11,10 +11,10 @@ import (
 
 func NewTestHAProxyLogRecord(getUrl string) (*logger.HAProxyLogRecord, *httptest.ResponseRecorder) {	
 	r, _ := http.NewRequest("GET", getUrl, nil)
-	rr   := httptest.NewRecorder()
+	w   := httptest.NewRecorder()
 	return &logger.HAProxyLogRecord{
-		ResponseWriter:		rr,
+		ResponseWriter:		w,
 		Request:		r,
-	} , rr
+	} , w 
 }
 

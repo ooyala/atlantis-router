@@ -10,7 +10,13 @@ import (
 
 const (
 	HAProxyFmtStr = "haproxy[%d]: %s:%s [%s] %s %s %s/%s/%s/%s/%s %d %d %s %s %s %d/%d/%d/%d/%d %d/%d {%s} {%s} \"%s\""
+	BadGatewayMsg = "Bad Gateway"
+	GatewayTimeoutMsg = "Gateway Timeout"
+	ServiceUnavailableMsg = "Service Unavailable"
+	
 )
+
+var copier = NewCopier()
 
 type HAProxyLogRecord struct {
 	http.ResponseWriter
@@ -87,22 +93,26 @@ func (r *HAProxyLogRecord) ServerUpdateRecord(name string, sQueue uint64, sConn 
 	r.srvQueue = sQueue
 	r.srvConn = sConn
 }
+func (r *HAProxyLogRecord) AddResponseHeaderMap(hdrs http.Header) {
+	for hdr, vals := range hdrs {
+		for _, val := range vals {
+			r.AddResponseHeader(hdr, val)
+		}
+	}
+}
+func (r *HAProxyLogRecord) AddResponseHeader(hdr, val string) {
+	r.ResponseWriter.Header().Add(hdr, val)
+}
+func (r *HAProxyLogRecord) Copy(src io.Reader) (err error){
+	_, err = copier.Copy(r.ResponseWriter, src)
+	return err
+		
+}
 func (r *HAProxyLogRecord) SetResponseStatusCode(code int){
-	switch {
-	case code == http.StatusBadGateway:
+	if code >= 100 && code <= 505{ 
 		r.statusCode = code
-		http.Error(r.ResponseWriter, "Bad Gateway", http.StatusBadGateway)
-	case code == http.StatusGatewayTimeout:
-		r.statusCode = code
-		http.Error(r.ResponseWriter, "Gateway Timeout", http.StatusGatewayTimeout)
-	case code == http.StatusServiceUnavailable:
-		r.statusCode = code
-		http.Error(r.ResponseWriter, "Service Unavailable", http.StatusServiceUnavailable)
-	case code >= 100 && code <= 505 :
-			r.statusCode = code
-			r.ResponseWriter.WriteHeader(code)
-	}	
-	
+		r.ResponseWriter.WriteHeader(code)
+ 	}	
 	
 
 }
@@ -114,6 +124,13 @@ func (r *HAProxyLogRecord) GetResponseStatusCode() int{
 	}
 	return r.statusCode
 }
+//Responds to the specified request with the provided error. 
+func (r *HAProxyLogRecord) Error(error string, code int){	
+	r.statusCode = code
+	http.Error(r.ResponseWriter, error, code)
+}
 func (r *HAProxyLogRecord) GetResponseHeaders() http.Header {
 	return r.ResponseWriter.Header()
-} 
+}
+
+
