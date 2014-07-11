@@ -149,8 +149,3 @@ func (s *Server) Cost(accept string) uint32 {
 	return s.Status.Cost(accept) + s.Metrics.Cost()
 }
 
-func (s *Server) Shutdown() {
-//TODO previously they shut down the copier here
-//but now that the copier is a statics to the HAProxyLog package 
-//dunno where exactly to shut down probably when router shuts down
-}
