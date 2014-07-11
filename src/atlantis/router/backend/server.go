@@ -102,7 +102,7 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 			logger.Printf("%s %d", s.logPrefix(logRecord.Request, tstart), resErr.Response.StatusCode)
 			defer resErr.Response.Body.Close()
 
-			logRecord.AddResponseHeaderMap(resErr.Response.Header)
+			logRecord.CopyHeaders(resErr.Response.Header)
 			logRecord.SetResponseStatusCode(resErr.Response.StatusCode)	
 
 			err := logRecord.Copy(resErr.Response.Body)

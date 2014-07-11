@@ -93,7 +93,7 @@ func (r *HAProxyLogRecord) ServerUpdateRecord(name string, sQueue uint64, sConn 
 	r.srvQueue = sQueue
 	r.srvConn = sConn
 }
-func (r *HAProxyLogRecord) AddResponseHeaderMap(hdrs http.Header) {
+func (r *HAProxyLogRecord) CopyHeaders(hdrs http.Header) {
 	for hdr, vals := range hdrs {
 		for _, val := range vals {
 			r.AddResponseHeader(hdr, val)
