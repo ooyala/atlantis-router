@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"os"
 )
 
 const (
-	HAProxyFmtStr = "haproxy[%d]: %s:%s [%s] %s %s %s/%s/%s/%s/%s %d %d %s %s %s %d/%d/%d/%d/%d %d/%d {%s} {%s} \"%s\""
+	HAProxyFmtStr = "haproxy[%d]: %s:%s [%s] %s %s/%s %d/%d/%d/%d/%d %d %d %s %s %s %d/%d/%d/%d/%d %d/%d {%s} {%s} \"%s\"\n"
 	BadGatewayMsg = "Bad Gateway"
 	GatewayTimeoutMsg = "Gateway Timeout"
 	ServiceUnavailableMsg = "Service Unavailable"
@@ -24,10 +25,13 @@ type HAProxyLogRecord struct {
 	pid                                       int
 	clientIp, clientPort                      string
 	acceptDate                                time.Time
+	enterPoolTime				  time.Time
+	enterServerTime				  time.Time
+	serverResTime				  time.Time
 	frontendPort                              string
 	backendName                               string
 	serverName                                string
-	tq, tw, tc, tr, tt                        string
+	tq, tw, tc, tr, tt                        int64 
 	statusCode                                int
 	bytesRead                                 int
 	capturedReqCookie                         string
@@ -43,31 +47,60 @@ type HAProxyLogRecord struct {
 func NewHAProxyLogRecord(wr http.ResponseWriter, r *http.Request, frontendPort string, feConn uint32, acceptDate time.Time) HAProxyLogRecord {
 	var headStr, fullReq string
 	for key, value := range r.Header {
-		headStr += "| " + key + ":" + value[0] + " "
+		headStr += " " + key + ":" + value[0] + " |"
+	}
+	sz := len(headStr)
+	if sz > 0 && headStr[sz-1] == '|' {
+		headStr = headStr[:sz-1]
 	}
 	fullReq = r.Method + " " + r.RequestURI + " " + r.Proto
 	colon := strings.LastIndex(r.RemoteAddr, ":")
 	return HAProxyLogRecord{
 		ResponseWriter:         wr,
 		Request:                r,
-		pid:                    100,
+		pid:                    os.Getpid(),
 		clientIp:               r.RemoteAddr[:colon],
 		clientPort:             r.RemoteAddr[colon+1:],
 		acceptDate:             acceptDate,
 		frontendPort:           frontendPort,
 		feConn:                 feConn,
-		capturedRequestHeaders: "{" + headStr + "}",
+		capturedRequestHeaders: headStr,
 		httpRequest:            fullReq,
+		actConn:		0,
+		tq:			0,
+		tw:			0,
+		tc:			0,
+		tr:			0,
+		tt:			0,
+		serverName:		"-",
+		capturedReqCookie:	"-",
+		capturedResCookie:	"-",
+		terminationState:	"--",
 	}
 }
 
 func (r *HAProxyLogRecord) Log(out io.Writer) {
+
+	//build response header string
 	var resHeadStr string
 	for key, value := range r.ResponseWriter.Header() {
 		resHeadStr += " " + key + ":" + value[0] + " |"
 	}
-	resHeadStr = "{" + resHeadStr + "}"
+	sz := len(resHeadStr)
+	if sz > 0 && resHeadStr[sz-1] == '|' {
+		resHeadStr = resHeadStr[:sz-1]
+	}
+
+	//build cookie strings
+	r.capturedReqCookie = getCookiesString(r.Request.Cookies())
+	
 	timeFormatted := r.acceptDate.Format("02/Jan/2006:03:04:05.555")
+
+	//calculate the queue/wait times
+	//r.tt = int64( (r.serverResTime.UnixNano() - r.acceptDate.UnixNano()) / int64(time.Millisecond)) // total time from accepted to final response
+	//r.tw = int64( (r.enterServerTime.UnixNano() - r.enterPoolTime.UnixNano()) / int64(time.Millisecond)) //total time spent waiting in queues
+	r.tt = r.serverResTime.UnixNano() - r.acceptDate.UnixNano()
+	r.tw = r.enterServerTime.UnixNano() - r.acceptDate.UnixNano()
 	fmt.Fprintf(out, HAProxyFmtStr, r.pid, r.clientIp, r.clientPort,
 		timeFormatted, r.frontendPort, r.backendName, r.serverName,
 		r.tq, r.tw, r.tc, r.tr, r.tt, r.statusCode, r.bytesRead, r.capturedReqCookie,
@@ -77,21 +110,36 @@ func (r *HAProxyLogRecord) Log(out io.Writer) {
 
 }
 
+func getCookiesString(cookies []*http.Cookie) string{
+	var cookieStr string
+	for _, c := range cookies{
+		cookieStr += " " + c.Name + ":" + c.Value + " |"		
+	}
+	sz := len(cookieStr)
+	if sz > 0 && cookieStr[sz-1] == '|' {
+		cookieStr = cookieStr[:sz-1]
+		return "{ " + cookieStr + "}"
+	}
+	return "-"
+}
+
 func (r *HAProxyLogRecord) Write(p []byte) (int, error) {
 	written, err := r.ResponseWriter.Write(p)
-	//r.responseBytes += int64(written)
+	r.bytesRead += written
 	return written, err
 }
 
-func (r *HAProxyLogRecord) PoolUpdateRecord(name string, count uint32, beQueue uint64) {
+func (r *HAProxyLogRecord) PoolUpdateRecord(name string, count uint32, beQueue uint64, pTime time.Time) {
 	r.backendName = name
 	r.beConn = count
 	r.backendQueue = beQueue
+	r.enterPoolTime = pTime
 }
-func (r *HAProxyLogRecord) ServerUpdateRecord(name string, sQueue uint64, sConn uint32) {
+func (r *HAProxyLogRecord) ServerUpdateRecord(name string, sQueue uint64, sConn uint32, sTime time.Time) {
 	r.serverName = name
 	r.srvQueue = sQueue
 	r.srvConn = sConn
+	r.enterServerTime = sTime
 }
 func (r *HAProxyLogRecord) CopyHeaders(hdrs http.Header) {
 	for hdr, vals := range hdrs {
@@ -131,6 +179,13 @@ func (r *HAProxyLogRecord) Error(error string, code int){
 }
 func (r *HAProxyLogRecord) GetResponseHeaders() http.Header {
 	return r.ResponseWriter.Header()
+}
+
+
+func (r *HAProxyLogRecord) UpdateTr(resStartTime, resRetTime time.Time){
+	//r.tr = int64( (resRetTime.UnixNano() - resStartTime.UnixNano()) / int64(time.Millisecond) )
+  	r.tr = resRetTime.UnixNano() - resStartTime.UnixNano() 	
+	r.serverResTime = resRetTime
 }
 
 

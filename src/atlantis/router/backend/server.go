@@ -85,21 +85,23 @@ func (s *Server) logPrefix(r *http.Request, tstart time.Time) string {
 }
 
 func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) {
+	sTime := time.Now()
 	s.Metrics.RequestStart()
 	defer s.Metrics.RequestDone()
 
 	// X-Forwarded-For; we are a proxy.
 	ip := strings.Split(logRecord.Request.RemoteAddr, ":")[0]
 	logRecord.Request.Header.Add("X-Forwarded-For", ip)
-	logRecord.ServerUpdateRecord("", s.Metrics.RequestsServiced, s.Metrics.Cost())
+	logRecord.ServerUpdateRecord(s.Address, s.Metrics.RequestsServiced, s.Metrics.Cost(), sTime)
 	resErrCh := make(chan ResponseError)
 	tstart := time.Now()
 	go s.RoundTrip(logRecord.Request, resErrCh)
-
+	tend := time.Now()
+	logRecord.UpdateTr(tstart, tend)
 	select {
 	case resErr := <-resErrCh:
 		if resErr.Error == nil {
-			logger.Printf("%s %d", s.logPrefix(logRecord.Request, tstart), resErr.Response.StatusCode)
+			//logger.Printf("%s %d", s.logPrefix(logRecord.Request, tstart), resErr.Response.StatusCode)
 			defer resErr.Response.Body.Close()
 
 			logRecord.CopyHeaders(resErr.Response.Header)
@@ -131,17 +133,23 @@ func (s *Server) CheckStatus(tout time.Duration) {
 	select {
 	case resErr := <-resErrCh:
 		if resErr.Error == nil {
-			logger.Printf("%s %d", s.logPrefix(r, tstart), resErr.Response.StatusCode)
 			defer resErr.Response.Body.Close()
-			s.Status.ParseAndSet(resErr.Response)
+
+			//if status has changed then log	
+			if s.Status.ParseAndSet(resErr.Response) {
+				logger.Printf("%s %d", s.logPrefix(r, tstart), resErr.Response.StatusCode)
+			}
 		} else {
-			logger.Errorf("%s %s", s.logPrefix(r, tstart), resErr.Error)
-			s.Status.Set(StatusCritical)
+			//if status has changed then log
+			if s.Status.Set(StatusCritical) {
+				logger.Errorf("%s %s", s.logPrefix(r, tstart), resErr.Error)
+			}
 		}
 	case <-time.After(tout):
 		s.Transport.CancelRequest(r)
-		logger.Errorf("%s timeout", s.logPrefix(r, tstart))
-		s.Status.Set(StatusCritical)
+		if s.Status.Set(StatusCritical) {
+			logger.Errorf("%s timeout", s.logPrefix(r, tstart))
+		}
 	}
 }
 

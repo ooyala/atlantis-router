@@ -74,7 +74,7 @@ func (p *Pool) DelServer(name string) {
 		logger.Errorf("[pool %s] server %s absent", p.Name, name)
 		return
 	}
-	p.Servers[name].Shutdown()
+	//p.Servers[name].Shutdown()
 	delete(p.Servers, name)
 }
 
@@ -115,6 +115,7 @@ func (p Pool) Next() *Server {
 	return next
 }
 func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
+	pTime := time.Now()
 	if p.Dummy {
 		logger.Printf("[pool %s] Dummy", p.Name)	
 		logRecord.SetResponseStatusCode(http.StatusBadGateway)	
@@ -131,6 +132,6 @@ func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 		logRecord.Error(logger.ServiceUnavailableMsg, http.StatusServiceUnavailable)
 		return
 	}
-	logRecord.PoolUpdateRecord(p.Name, p.Metrics.GetActiveConnections(), p.Metrics.GetTotalConnections())
+	logRecord.PoolUpdateRecord(p.Name, p.Metrics.GetActiveConnections(), p.Metrics.GetTotalConnections(), pTime)
 	server.Handle(logRecord, p.Config.RequestTimeout)
 }
