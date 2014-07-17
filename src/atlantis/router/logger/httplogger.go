@@ -22,6 +22,7 @@ var copier = NewCopier()
 type HAProxyLogRecord struct {
 	http.ResponseWriter
 	*http.Request
+	out					  io.Writer
 	pid                                       int
 	clientIp, clientPort                      string
 	acceptDate                                time.Time
@@ -58,6 +59,7 @@ func NewHAProxyLogRecord(wr http.ResponseWriter, r *http.Request, frontendPort s
 	return HAProxyLogRecord{
 		ResponseWriter:         wr,
 		Request:                r,
+		out:			os.Stdout,
 		pid:                    os.Getpid(),
 		clientIp:               r.RemoteAddr[:colon],
 		clientPort:             r.RemoteAddr[colon+1:],
@@ -72,6 +74,7 @@ func NewHAProxyLogRecord(wr http.ResponseWriter, r *http.Request, frontendPort s
 		tc:			0,
 		tr:			0,
 		tt:			0,
+		backendName:	        "-",
 		serverName:		"-",
 		capturedReqCookie:	"-",
 		capturedResCookie:	"-",
@@ -79,7 +82,7 @@ func NewHAProxyLogRecord(wr http.ResponseWriter, r *http.Request, frontendPort s
 	}
 }
 
-func (r *HAProxyLogRecord) Log(out io.Writer) {
+func (r *HAProxyLogRecord) Log() {
 
 	//build response header string
 	var resHeadStr string
@@ -97,17 +100,16 @@ func (r *HAProxyLogRecord) Log(out io.Writer) {
 	timeFormatted := r.acceptDate.Format("02/Jan/2006:03:04:05.555")
 
 	//calculate the queue/wait times
-	//r.tt = int64( (r.serverResTime.UnixNano() - r.acceptDate.UnixNano()) / int64(time.Millisecond)) // total time from accepted to final response
-	//r.tw = int64( (r.enterServerTime.UnixNano() - r.enterPoolTime.UnixNano()) / int64(time.Millisecond)) //total time spent waiting in queues
-	r.tt = r.serverResTime.UnixNano() - r.acceptDate.UnixNano()
-	r.tw = r.enterServerTime.UnixNano() - r.acceptDate.UnixNano()
-	fmt.Fprintf(out, HAProxyFmtStr, r.pid, r.clientIp, r.clientPort,
+	r.tt = int64( (r.serverResTime.UnixNano() - r.acceptDate.UnixNano()) / int64(time.Millisecond)) // total time from accepted to final response
+	r.tw = int64( (r.enterServerTime.UnixNano() - r.enterPoolTime.UnixNano()) / int64(time.Millisecond)) //total time spent waiting in queues
+	//r.tt = r.serverResTime.UnixNano() - r.acceptDate.UnixNano()
+	//r.tw = r.enterServerTime.UnixNano() - r.acceptDate.UnixNano()
+	fmt.Fprintf(r.out, HAProxyFmtStr, r.pid, r.clientIp, r.clientPort,
 		timeFormatted, r.frontendPort, r.backendName, r.serverName,
 		r.tq, r.tw, r.tc, r.tr, r.tt, r.statusCode, r.bytesRead, r.capturedReqCookie,
 		r.capturedResCookie, r.terminationState, r.actConn, r.feConn, r.beConn,
 		r.srvConn, r.retries, r.srvQueue, r.backendQueue, r.capturedRequestHeaders,
 		resHeadStr, r.httpRequest)
-
 }
 
 func getCookiesString(cookies []*http.Cookie) string{
@@ -181,11 +183,18 @@ func (r *HAProxyLogRecord) GetResponseHeaders() http.Header {
 	return r.ResponseWriter.Header()
 }
 
-
 func (r *HAProxyLogRecord) UpdateTr(resStartTime, resRetTime time.Time){
-	//r.tr = int64( (resRetTime.UnixNano() - resStartTime.UnixNano()) / int64(time.Millisecond) )
-  	r.tr = resRetTime.UnixNano() - resStartTime.UnixNano() 	
+	r.tr = int64( (resRetTime.UnixNano() - resStartTime.UnixNano()) / int64(time.Millisecond) )
+  	//r.tr = resRetTime.UnixNano() - resStartTime.UnixNano() 	
 	r.serverResTime = resRetTime
 }
+
+//Set's the termination state and log's the request
+func (r *HAProxyLogRecord) Terminate(termState string) {
+	r.terminationState = termState
+	r.Log()
+}
+
+
 
 

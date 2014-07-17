@@ -45,12 +45,13 @@ func NewPort(p uint16, c *config.Config) (*Port, error) {
 func (p *Port) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	enterTime := time.Now()
 	p.Metrics.ConnectionStart()
-	logRecord := logger.NewHAProxyLogRecord(w, r, fmt.Sprintf("%d", p.port), p.Metrics.GetActiveConnections(), enterTime)
+	logRecord := logger.NewHAProxyLogRecord(w, r, p.config.Ports[p.port].Name, p.Metrics.GetActiveConnections(), enterTime)
 	if pool := p.config.RoutePort(p.port, r); pool != nil {
 		pool.Handle(&logRecord)
 	} else {
 		//http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
+		logRecord.Terminate("Port: " + logger.BadGatewayMsg)
 	}
 	p.Metrics.ConnectionDone()
 }

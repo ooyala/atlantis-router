@@ -16,10 +16,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
-	"os"
 )
 
 type Server struct {
@@ -64,26 +62,6 @@ func (s *Server) RoundTrip(req *http.Request, ch chan ResponseError) {
 	}
 }
 
-func (s *Server) logPrefix(r *http.Request, tstart time.Time) string {
-	now := time.Now()
-
-	var rtt0, rtt1 int64
-
-	// Calculate the total round trip time if front end inserted the atlantis-arrival-time
-	// header before routing the request. The header is assumed to be created by calling
-	// time.Now().UnixNano() or equivalent.
-	arr, err := strconv.ParseInt(r.Header.Get("atlantis-arrival-time"), 10, 64)
-	if err != nil {
-		rtt0 = now.UnixNano() - arr
-	}
-
-	rtt1 = now.UnixNano() - tstart.UnixNano()
-
-	// Log prefix includes server address, request source and URI, and round trip times.
-	return fmt.Sprintf("[server %s][request %s|%s][rtt %d|%d]", s.Address, r.RemoteAddr,
-		r.URL, rtt0, rtt1)
-}
-
 func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) {
 	sTime := time.Now()
 	s.Metrics.RequestStart()
@@ -101,7 +79,6 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 	select {
 	case resErr := <-resErrCh:
 		if resErr.Error == nil {
-			//logger.Printf("%s %d", s.logPrefix(logRecord.Request, tstart), resErr.Response.StatusCode)
 			defer resErr.Response.Body.Close()
 
 			logRecord.CopyHeaders(resErr.Response.Header)
@@ -109,25 +86,26 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 
 			err := logRecord.Copy(resErr.Response.Body)
 			if err != nil {
-				logger.Errorf("%s %s", s.logPrefix(logRecord.Request, tstart), err)
+			       logger.Errorf("[server %s] failed attempting to copy response body: %s\n", s.Address, err)
 			} else {
-				logRecord.Log(os.Stdout)
+				logRecord.Log()
 			}
 		} else {
-			logger.Errorf("%s %s", s.logPrefix(logRecord.Request, tstart), resErr.Error)
+			logger.Errorf("[server %s] failed attempting the roundtrip: %s\n", s.Address, resErr.Error)
 			logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
+			logRecord.Terminate("Server: " + logger.BadGatewayMsg)
 		}
 	case <-time.After(tout):
 		s.Transport.CancelRequest(logRecord.Request)
-		logger.Printf("%s timeout", s.logPrefix(logRecord.Request, tstart))
+		logger.Printf("[server %s] round trip timed out!", s.Address)
 		logRecord.Error(logger.GatewayTimeoutMsg, http.StatusGatewayTimeout)
+		logRecord.Terminate("Server: " + logger.GatewayTimeoutMsg)
 	}
 }
 func (s *Server) CheckStatus(tout time.Duration) {
 	r, _ := http.NewRequest("GET", "http://"+s.Address+"/healthz", nil)
 
 	resErrCh := make(chan ResponseError)
-	tstart := time.Now()
 	go s.RoundTrip(r, resErrCh)
 
 	select {
@@ -137,18 +115,18 @@ func (s *Server) CheckStatus(tout time.Duration) {
 
 			//if status has changed then log	
 			if s.Status.ParseAndSet(resErr.Response) {
-				logger.Printf("%s %d", s.logPrefix(r, tstart), resErr.Response.StatusCode)
+				logger.Printf("[server %s] status code changed to %d\n", s.Address, resErr.Response.StatusCode)
 			}
 		} else {
 			//if status has changed then log
 			if s.Status.Set(StatusCritical) {
-				logger.Errorf("%s %s", s.logPrefix(r, tstart), resErr.Error)
+				logger.Errorf("[server %s] status set to critical! : %s\n", s.Address, resErr.Error)
 			}
 		}
 	case <-time.After(tout):
 		s.Transport.CancelRequest(r)
 		if s.Status.Set(StatusCritical) {
-			logger.Errorf("%s timeout", s.logPrefix(r, tstart))
+			logger.Errorf("[server %s] status set to critical due to timeout!\n", s.Address)
 		}
 	}
 }

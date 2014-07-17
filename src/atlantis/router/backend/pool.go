@@ -120,6 +120,7 @@ func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 		logger.Printf("[pool %s] Dummy", p.Name)	
 		logRecord.SetResponseStatusCode(http.StatusBadGateway)	
 		logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
+		logRecord.Terminate("Pool: " + logger.BadGatewayMsg)
 		return
 	}
 	p.Metrics.ConnectionStart()
@@ -130,6 +131,7 @@ func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 		// reachable when all servers in pool report StatusMaintenance
 		logger.Printf("[pool %s] no server", p.Name)
 		logRecord.Error(logger.ServiceUnavailableMsg, http.StatusServiceUnavailable)
+		logRecord.Terminate("Pool: " + logger.ServiceUnavailableMsg)
 		return
 	}
 	logRecord.PoolUpdateRecord(p.Name, p.Metrics.GetActiveConnections(), p.Metrics.GetTotalConnections(), pTime)
