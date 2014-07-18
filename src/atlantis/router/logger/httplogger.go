@@ -34,7 +34,7 @@ type HAProxyLogRecord struct {
 	serverName                                string
 	tq, tw, tc, tr, tt                        int64 
 	statusCode                                int
-	bytesRead                                 int
+	bytesRead                                 int64
 	capturedReqCookie                         string
 	capturedResCookie                         string
 	terminationState                          string
@@ -45,7 +45,16 @@ type HAProxyLogRecord struct {
 	httpRequest                               string
 }
 
-func NewHAProxyLogRecord(wr http.ResponseWriter, r *http.Request, frontendPort string, feConn uint32, acceptDate time.Time) HAProxyLogRecord {
+func NewShallowHAProxyLogRecord(out io.Writer, w http.ResponseWriter, r *http.Request) *HAProxyLogRecord{
+
+	return &HAProxyLogRecord{
+		ResponseWriter:		w,
+		Request:		r,
+		out:			out,
+	} 
+}	
+
+func NewHAProxyLogRecord(w http.ResponseWriter, r *http.Request, frontendPort string, feConn uint32, acceptDate time.Time) HAProxyLogRecord {
 	var headStr, fullReq string
 	for key, value := range r.Header {
 		headStr += " " + key + ":" + value[0] + " |"
@@ -57,7 +66,7 @@ func NewHAProxyLogRecord(wr http.ResponseWriter, r *http.Request, frontendPort s
 	fullReq = r.Method + " " + r.RequestURI + " " + r.Proto
 	colon := strings.LastIndex(r.RemoteAddr, ":")
 	return HAProxyLogRecord{
-		ResponseWriter:         wr,
+		ResponseWriter:         w,
 		Request:                r,
 		out:			os.Stdout,
 		pid:                    os.Getpid(),
@@ -127,7 +136,7 @@ func getCookiesString(cookies []*http.Cookie) string{
 
 func (r *HAProxyLogRecord) Write(p []byte) (int, error) {
 	written, err := r.ResponseWriter.Write(p)
-	r.bytesRead += written
+	r.bytesRead += int64(written)
 	return written, err
 }
 
@@ -151,15 +160,18 @@ func (r *HAProxyLogRecord) CopyHeaders(hdrs http.Header) {
 	}
 }
 func (r *HAProxyLogRecord) AddResponseHeader(hdr, val string) {
+	r.bytesRead += int64(len(hdr))
+	r.bytesRead += int64(len(val))
 	r.ResponseWriter.Header().Add(hdr, val)
 }
 func (r *HAProxyLogRecord) Copy(src io.Reader) (err error){
-	_, err = copier.Copy(r.ResponseWriter, src)
+	bwritten, err := copier.Copy(r.ResponseWriter, src)
+	r.bytesRead += bwritten
 	return err
 		
 }
-func (r *HAProxyLogRecord) SetResponseStatusCode(code int){
-	if code >= 100 && code <= 505{ 
+func (r *HAProxyLogRecord) WriteHeader(code int){
+	if code >= 100 && code <= 599{ 
 		r.statusCode = code
 		r.ResponseWriter.WriteHeader(code)
  	}	
@@ -168,9 +180,9 @@ func (r *HAProxyLogRecord) SetResponseStatusCode(code int){
 }
 func (r *HAProxyLogRecord) GetResponseStatusCode() int{
 	//if status code has not been set
-	if r.statusCode < 100 || r.statusCode > 505 {
+	if r.statusCode < 100 || r.statusCode > 599 {
 		r.statusCode = http.StatusOK
-		r.SetResponseStatusCode(http.StatusOK)
+		r.WriteHeader(http.StatusOK)
 	}
 	return r.statusCode
 }

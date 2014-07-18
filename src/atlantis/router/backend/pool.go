@@ -118,7 +118,6 @@ func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 	pTime := time.Now()
 	if p.Dummy {
 		logger.Printf("[pool %s] Dummy", p.Name)	
-		logRecord.SetResponseStatusCode(http.StatusBadGateway)	
 		logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
 		logRecord.Terminate("Pool: " + logger.BadGatewayMsg)
 		return
