@@ -74,7 +74,7 @@ func (p *Pool) DelServer(name string) {
 		logger.Errorf("[pool %s] server %s absent", p.Name, name)
 		return
 	}
-	//p.Servers[name].Shutdown()
+
 	delete(p.Servers, name)
 }
 

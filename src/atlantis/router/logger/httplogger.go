@@ -111,8 +111,7 @@ func (r *HAProxyLogRecord) Log() {
 	//calculate the queue/wait times
 	r.tt = int64( (r.serverResTime.UnixNano() - r.acceptDate.UnixNano()) / int64(time.Millisecond)) // total time from accepted to final response
 	r.tw = int64( (r.enterServerTime.UnixNano() - r.enterPoolTime.UnixNano()) / int64(time.Millisecond)) //total time spent waiting in queues
-	//r.tt = r.serverResTime.UnixNano() - r.acceptDate.UnixNano()
-	//r.tw = r.enterServerTime.UnixNano() - r.acceptDate.UnixNano()
+	
 	fmt.Fprintf(r.out, HAProxyFmtStr, r.pid, r.clientIp, r.clientPort,
 		timeFormatted, r.frontendPort, r.backendName, r.serverName,
 		r.tq, r.tw, r.tc, r.tr, r.tt, r.statusCode, r.bytesRead, r.capturedReqCookie,
@@ -197,7 +196,6 @@ func (r *HAProxyLogRecord) GetResponseHeaders() http.Header {
 
 func (r *HAProxyLogRecord) UpdateTr(resStartTime, resRetTime time.Time){
 	r.tr = int64( (resRetTime.UnixNano() - resStartTime.UnixNano()) / int64(time.Millisecond) )
-  	//r.tr = resRetTime.UnixNano() - resStartTime.UnixNano() 	
 	r.serverResTime = resRetTime
 }
 
