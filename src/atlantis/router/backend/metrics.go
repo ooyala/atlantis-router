@@ -39,3 +39,32 @@ func (s *ServerMetrics) RequestDone() {
 func (s *ServerMetrics) Cost() uint32 {
 	return s.RequestsInFlight
 }
+
+type ConnectionMetrics struct {
+	ActiveConnections uint32
+	TotalConnections  uint64
+}
+
+func NewConnectionMetrics() ConnectionMetrics {
+	return ConnectionMetrics{
+		ActiveConnections: 0,
+		TotalConnections:  0,
+	}
+}
+
+func (c *ConnectionMetrics) ConnectionStart() {
+	atomic.AddUint32(&c.ActiveConnections, uint32(1))
+	c.TotalConnections++
+}
+
+func (c *ConnectionMetrics) ConnectionDone() {
+	atomic.AddUint32(&c.ActiveConnections, ^uint32(0))
+}
+
+func (c *ConnectionMetrics) GetActiveConnections() uint32 {
+	return c.ActiveConnections
+}
+
+func (c *ConnectionMetrics) GetTotalConnections() uint64 {
+	return c.TotalConnections
+}

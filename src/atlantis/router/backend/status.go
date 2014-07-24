@@ -36,13 +36,15 @@ func NewServerStatus() ServerStatus {
 		Changed: time.Now(),
 	}
 }
-
-func (s *ServerStatus) Set(status string) {
+//Returns a bool representing if the status changed
+func (s *ServerStatus) Set(status string) bool {
 	s.Checked = time.Now()
 	if s.Current != status {
 		s.Current = status
 		s.Changed = s.Checked
+		return true
 	}
+	return false
 
 }
 
@@ -64,19 +66,17 @@ func IsValidStatus(s string) bool {
 	return s == StatusOk || s == StatusDegraded || s == StatusCritical
 }
 
-func (s *ServerStatus) ParseAndSet(res *http.Response) {
+func (s *ServerStatus) ParseAndSet(res *http.Response) bool {
 	if res.StatusCode != http.StatusOK {
-		s.Set(StatusMaintenance)
-		return
+		return s.Set(StatusMaintenance)
 	}
 
 	hdr := res.Header.Get("Server-Status")
 	if IsValidStatus(hdr) {
-		s.Set(hdr)
-		return
+		return s.Set(hdr)
 	}
 
-	s.Set(StatusMaintenance)
+	return s.Set(StatusMaintenance)
 }
 
 func (s *ServerStatus) Cost(accept string) uint32 {

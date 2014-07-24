@@ -15,7 +15,6 @@ import (
 	"atlantis/router/testutils"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -86,15 +85,13 @@ func TestHandleResponse(t *testing.T) {
 	defer backend.Shutdown()
 
 	server := NewServer(backend.Address())
-	req, _ := http.NewRequest("GET", backend.URL(), nil)
+	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
+	server.Handle(logRecord, 100*time.Millisecond)
 
-	res := httptest.NewRecorder()
-	server.Handle(res, req, 100*time.Millisecond)
-
-	if res.Code != http.StatusOK {
+	if logRecord.GetResponseStatusCode() != http.StatusOK {
 		t.Errorf("should set status code")
 	}
-	body, _ := ioutil.ReadAll(res.Body)
+	body, _ := ioutil.ReadAll(rr.Body)
 	if string(body) != "The eagle has landed." {
 		t.Errorf("should set response body")
 	}
@@ -105,10 +102,8 @@ func TestHandleXForwardedFor(t *testing.T) {
 	defer backend.Shutdown()
 
 	server := NewServer(backend.Address())
-	req, _ := http.NewRequest("GET", backend.URL(), nil)
-
-	res := httptest.NewRecorder()
-	server.Handle(res, req, 100*time.Millisecond)
+	logRecord, _ := testutils.NewTestHAProxyLogRecord(backend.URL())
+	server.Handle(logRecord, 100*time.Millisecond)
 
 	elm := backend.Handler.Recorded.Front()
 	rec := elm.Value.(testutils.RequestAndTime).R
@@ -122,12 +117,10 @@ func TestHandleResponseHeaders(t *testing.T) {
 	defer backend.Shutdown()
 
 	server := NewServer(backend.Address())
-	req, _ := http.NewRequest("GET", backend.URL()+"/healthz", nil)
+	logRecord, _ := testutils.NewTestHAProxyLogRecord(backend.URL() +"/healthz")
+	server.Handle(logRecord, 100*time.Millisecond)
 
-	res := httptest.NewRecorder()
-	server.Handle(res, req, 100*time.Millisecond)
-
-	if res.HeaderMap["Server-Status"][0] != "OK" {
+	if logRecord.GetResponseHeaders()["Server-Status"][0] != "OK" {
 		t.Errorf("should copy response headers")
 	}
 }
@@ -138,16 +131,15 @@ func TestHandleTimeout(t *testing.T) {
 	defer backend.Shutdown()
 
 	server := NewServer(backend.Address())
-	req, _ := http.NewRequest("GET", backend.URL(), nil)
+	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
+	server.Handle(logRecord, 10*time.Millisecond)
 
-	res := httptest.NewRecorder()
-	server.Handle(res, req, 10*time.Millisecond)
-
-	if res.Code != http.StatusGatewayTimeout {
+	if logRecord.GetResponseStatusCode()  != http.StatusGatewayTimeout ||
+	    rr.Code != http.StatusGatewayTimeout {
 		t.Errorf("should report status code 502")
 	}
 
-	body, _ := ioutil.ReadAll(res.Body)
+	body, _ := ioutil.ReadAll(rr.Body)
 	if string(body) != "Gateway Timeout\n" {
 		t.Errorf("should report 'Gateway Timeout'")
 	}

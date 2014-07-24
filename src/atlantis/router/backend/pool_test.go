@@ -15,7 +15,6 @@ import (
 	"atlantis/router/testutils"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -187,26 +186,24 @@ func TestHandleDummy(t *testing.T) {
 	pool := DummyPool("test")
 	defer pool.Shutdown()
 
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "", nil)
+	logRecord, rr := testutils.NewTestHAProxyLogRecord("")
+	pool.Handle(logRecord)
 
-	pool.Handle(w, r)
-
-	if w.Code != http.StatusBadGateway {
+	if logRecord.GetResponseStatusCode() != http.StatusBadGateway ||
+	     rr.Code != http.StatusBadGateway {
 		t.Errorf("should return bad gateway for dummy")
+		t.Errorf("%s | %s", logRecord.GetResponseStatusCode(), rr.Code)
 	}
 }
-
 func TestHandleNoNext(t *testing.T) {
 	pool := NewPool("test", newTestConfig())
 	defer pool.Shutdown()
 
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "", nil)
+	logRecord, rr := testutils.NewTestHAProxyLogRecord("")
+	pool.Handle(logRecord)
 
-	pool.Handle(w, r)
-
-	if w.Code != http.StatusServiceUnavailable {
+	if logRecord.GetResponseStatusCode() != http.StatusServiceUnavailable ||
+	     rr.Code != http.StatusServiceUnavailable {
 		t.Errorf("should return unavailable with no next")
 	}
 }
@@ -223,13 +220,13 @@ func TestHandle(t *testing.T) {
 	pool.AddServer(backend.Address(), NewServer(backend.Address()))
 	time.Sleep(50 * time.Millisecond)
 
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", backend.URL(), nil)
-
-	pool.Handle(w, r)
-
-	body, _ := ioutil.ReadAll(w.Body)
-	if w.Code != http.StatusOK || string(body) != "Mickey Mouse!" {
+	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
+	pool.Handle(logRecord)
+	
+	body, _ := ioutil.ReadAll(rr.Body)
+	if logRecord.GetResponseStatusCode() != http.StatusOK || rr.Code != http.StatusOK ||
+	     string(body) != "Mickey Mouse!" {
 		t.Errorf("should forward requests to backend")
+		t.Errorf("%d | %d | %s", logRecord.GetResponseStatusCode, rr.Code, string(body))
 	}
 }

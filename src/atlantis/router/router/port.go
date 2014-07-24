@@ -11,8 +11,11 @@
 
 package router
 
+//TODO: pull metrics out of backend or put them in config or something
 import (
+	"atlantis/router/backend"
 	"atlantis/router/config"
+	"atlantis/router/logger"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,6 +26,7 @@ type Port struct {
 	port     uint16
 	config   *config.Config
 	listener net.Listener
+	Metrics  backend.ConnectionMetrics
 }
 
 func NewPort(p uint16, c *config.Config) (*Port, error) {
@@ -34,17 +38,22 @@ func NewPort(p uint16, c *config.Config) (*Port, error) {
 		port:     p,
 		config:   c,
 		listener: l,
+		Metrics:  backend.NewConnectionMetrics(),
 	}, nil
 }
 
 func (p *Port) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	r.Header.Add("atlantis-arrival-time", fmt.Sprintf("%d", time.Now().UnixNano()))
-
+	enterTime := time.Now()
+	p.Metrics.ConnectionStart()
+	logRecord := logger.NewHAProxyLogRecord(w, r, p.config.Ports[p.port].Name, p.Metrics.GetActiveConnections(), enterTime)
 	if pool := p.config.RoutePort(p.port, r); pool != nil {
-		pool.Handle(w, r)
+		pool.Handle(&logRecord)
 	} else {
-		http.Error(w, "Bad Gateway", http.StatusBadGateway)
+		//http.Error(w, "Bad Gateway", http.StatusBadGateway)
+		logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
+		logRecord.Terminate("Port: " + logger.BadGatewayMsg)
 	}
+	p.Metrics.ConnectionDone()
 }
 
 func (p *Port) Run(rout, wout time.Duration) {
