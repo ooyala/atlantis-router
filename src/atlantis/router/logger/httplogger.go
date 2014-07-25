@@ -1,9 +1,10 @@
 package logger
 
 import (
-	"fmt"
 	"io"
 	"net/http"
+	"log"
+	"log/syslog"
 	"strings"
 	"time"
 	"os"
@@ -43,14 +44,19 @@ type HAProxyLogRecord struct {
 	capturedRequestHeaders                    string
 	capturedResponseHeaders                   string
 	httpRequest                               string
+	sLog					  *log.Logger 
 }
 
 func NewShallowHAProxyLogRecord(out io.Writer, w http.ResponseWriter, r *http.Request) *HAProxyLogRecord{
-
+	tlog, err := syslog.NewLogger(syslog.LOG_LOCAL5 | syslog.LOG_INFO, 0)
+	//if cannot connect to syslog just get basic logger to stdout
+	if err != nil {
+		tlog = log.New(os.Stdout, "", 0)
+	}
 	return &HAProxyLogRecord{
 		ResponseWriter:		w,
 		Request:		r,
-		out:			out,
+		sLog:			tlog,
 	} 
 }	
 
@@ -65,10 +71,16 @@ func NewHAProxyLogRecord(w http.ResponseWriter, r *http.Request, frontendPort st
 	}
 	fullReq = r.Method + " " + r.RequestURI + " " + r.Proto
 	colon := strings.LastIndex(r.RemoteAddr, ":")
+
+	tlog, err := syslog.NewLogger(syslog.LOG_LOCAL5 | syslog.LOG_INFO, 0)
+	//if cannot connect to syslog just get basic logger to stdout
+	if err != nil {
+		tlog = log.New(os.Stdout, "", 0)
+	}
+	
 	return HAProxyLogRecord{
 		ResponseWriter:         w,
 		Request:                r,
-		out:			os.Stdout,
 		pid:                    os.Getpid(),
 		clientIp:               r.RemoteAddr[:colon],
 		clientPort:             r.RemoteAddr[colon+1:],
@@ -88,6 +100,7 @@ func NewHAProxyLogRecord(w http.ResponseWriter, r *http.Request, frontendPort st
 		capturedReqCookie:	"-",
 		capturedResCookie:	"-",
 		terminationState:	"--",
+		sLog:			tlog,
 	}
 }
 
@@ -112,7 +125,7 @@ func (r *HAProxyLogRecord) Log() {
 	r.tt = int64( (r.serverResTime.UnixNano() - r.acceptDate.UnixNano()) / int64(time.Millisecond)) // total time from accepted to final response
 	r.tw = int64( (r.enterServerTime.UnixNano() - r.enterPoolTime.UnixNano()) / int64(time.Millisecond)) //total time spent waiting in queues
 	
-	fmt.Fprintf(r.out, HAProxyFmtStr, r.pid, r.clientIp, r.clientPort,
+	r.sLog.Printf(HAProxyFmtStr, r.pid, r.clientIp, r.clientPort,
 		timeFormatted, r.frontendPort, r.backendName, r.serverName,
 		r.tq, r.tw, r.tc, r.tr, r.tt, r.statusCode, r.bytesRead, r.capturedReqCookie,
 		r.capturedResCookie, r.terminationState, r.actConn, r.feConn, r.beConn,
