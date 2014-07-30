@@ -30,7 +30,7 @@ type Pool struct {
 	Servers map[string]*Server
 	Config  PoolConfig
 	killCh  chan bool
-	Metrics	ConnectionMetrics
+	Metrics ConnectionMetrics
 }
 
 func DummyPool(name string) *Pool {
@@ -117,7 +117,7 @@ func (p Pool) Next() *Server {
 func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 	pTime := time.Now()
 	if p.Dummy {
-		logger.Printf("[pool %s] Dummy", p.Name)	
+		logger.Printf("[pool %s] Dummy", p.Name)
 		logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
 		logRecord.Terminate("Pool: " + logger.BadGatewayMsg)
 		return

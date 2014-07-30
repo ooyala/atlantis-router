@@ -36,6 +36,7 @@ func NewServerStatus() ServerStatus {
 		Changed: time.Now(),
 	}
 }
+
 //Returns a bool representing if the status changed
 func (s *ServerStatus) Set(status string) bool {
 	s.Checked = time.Now()
