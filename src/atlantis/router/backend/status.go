@@ -21,6 +21,7 @@ const (
 	StatusDegraded    = "DEGRADED"
 	StatusCritical    = "CRITICAL"
 	StatusMaintenance = "MAINTENANCE"
+	StatusUnknown      = "UNKNOWN"
 )
 
 type ServerStatus struct {
@@ -72,6 +73,12 @@ func (s *ServerStatus) ParseAndSet(res *http.Response) bool {
 	}
 
 	hdr := res.Header.Get("Server-Status")
+
+	//If the server-status header is not set
+	if len(hdr) == 0 { 	
+		return s.Set(StatusUnknown)
+	}
+
 	if IsValidStatus(hdr) {
 		return s.Set(hdr)
 	}
