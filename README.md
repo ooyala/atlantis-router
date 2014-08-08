@@ -1,4 +1,1 @@
-atlantis-router
-===============
-
-Router for Atlantis
+To view the API doc open api.md
