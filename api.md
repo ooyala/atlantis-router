@@ -38,6 +38,11 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 
 #### <a name="resstat"></a> Response Status
 
+All of the API Methods will return an HTTP Status code, a list of possible response codes and their in-context interpretations are below:
+
+
+Some of the API Methods are shown to return a JSON field "Status". This field is used in conjunction with the HTTP Status codes to build an accurate representation of the outcome of associated API Request.
+
 ***
 [top](#contents)
 
@@ -226,8 +231,8 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 200
 
 {
-	“Tries”: [
-    	“trie1”, “trie2”, “trie3”
+	"Tries": [
+    	"trie1", "trie2", "trie3"
  	]
 }
 ```
@@ -243,11 +248,11 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 200
 
 {
-	“Name” : “tName”,
-    “Rules”: [
-    	“rule1”, “rule2”, “rule3”
-	],
-    “Internal”: false
+	"Name": "tName",
+    "Rules": [
+    	"rule1", "rule2", "rule3"
+    ],
+    "Internal": false
 }
 ```
 ***
@@ -260,11 +265,11 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 
 ``` json
 {
-	“Name” : “newTrie”,
-    “Rules”: [
-    	“rule1”, “rule2”, “rule3”
-	],
-    “Internal”: false
+	"Name": "newTrie",
+    "Rules": [
+    	"rule1", "rule2", "rule3"
+    ],
+    "Internal": false
 }
 
 ```
@@ -309,9 +314,9 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 200
 
 {
-	“Rules”: [
-    	“rule1”, “rule2”, “rule3”
- 	]
+	"Rules": [
+    	"rule1", "rule2", "rule3"
+    ]
 }
 ```
 ***
@@ -326,12 +331,12 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 200
 
 {
-	“Name”: “rName”,
-    “Type”: “rType”,
-    “Value”: “rVal”,
-    “Next”: “next”,
-    “Pool”: “pName”,
-    “Internal”, false
+	"Name": "rName",
+    "Type": "rType",
+    "Value": "rVal",
+    "Next": "next",
+    "Pool": "pName",
+    "Internal", false
 }
 ```
 ***
@@ -344,12 +349,12 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 
 ``` json
 {
-	“Name”: “newRule”,
-    “Type”: “rType”,
-    “Value”: “rVal”,
-    “Next”: “next”,
-    “Pool”: “pName”,
-    “Internal”, false
+	"Name": "newRule",
+    "Type": "rType",
+    "Value": "rVal",
+    "Next": "next",
+    "Pool": "pName",
+    "Internal", false
 }
 ```
 
@@ -391,9 +396,9 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 200
 
 {
-	“Ports”: [
+	"Ports": [
     	28080, 8080, 2033
- 	]
+    ]
 }
 ```
 ***
@@ -408,9 +413,9 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 200
 
 {
-	“Port”: 28080,
-    “Trie”: “trie1”,
-    “Internal”: false
+	"Port": 28080,
+    "Trie": "trie1",
+    "Internal", false
 }
 ```
 ***
@@ -423,9 +428,9 @@ This API uses HTTP simple auth which essentially means two headers must be passe
 
 ``` json
 {
-	“Port”: 28080,
-    “Trie”: “trie1”,
-    “Internal”: false
+	"Port": 28080,
+    "Trie": "trie1",
+    "Internal", false
 }
 ```
 
