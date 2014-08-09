@@ -336,7 +336,7 @@ Some of the API Methods are shown to return a JSON field "Status". This field is
     "Value": "rVal",
     "Next": "next",
     "Pool": "pName",
-    "Internal", false
+    "Internal": false
 }
 ```
 ***
@@ -354,7 +354,7 @@ Some of the API Methods are shown to return a JSON field "Status". This field is
     "Value": "rVal",
     "Next": "next",
     "Pool": "pName",
-    "Internal", false
+    "Internal": false
 }
 ```
 
@@ -415,7 +415,7 @@ Some of the API Methods are shown to return a JSON field "Status". This field is
 {
 	"Port": 28080,
     "Trie": "trie1",
-    "Internal", false
+    "Internal": false
 }
 ```
 ***
@@ -430,7 +430,7 @@ Some of the API Methods are shown to return a JSON field "Status". This field is
 {
 	"Port": 28080,
     "Trie": "trie1",
-    "Internal", false
+    "Internal": false
 }
 ```
 
