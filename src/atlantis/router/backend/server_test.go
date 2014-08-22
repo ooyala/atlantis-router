@@ -117,7 +117,7 @@ func TestHandleResponseHeaders(t *testing.T) {
 	defer backend.Shutdown()
 
 	server := NewServer(backend.Address())
-	logRecord, _ := testutils.NewTestHAProxyLogRecord(backend.URL() +"/healthz")
+	logRecord, _ := testutils.NewTestHAProxyLogRecord(backend.URL() + "/healthz")
 	server.Handle(logRecord, 100*time.Millisecond)
 
 	if logRecord.GetResponseHeaders()["Server-Status"][0] != "OK" {
@@ -134,8 +134,8 @@ func TestHandleTimeout(t *testing.T) {
 	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
 	server.Handle(logRecord, 10*time.Millisecond)
 
-	if logRecord.GetResponseStatusCode()  != http.StatusGatewayTimeout ||
-	    rr.Code != http.StatusGatewayTimeout {
+	if logRecord.GetResponseStatusCode() != http.StatusGatewayTimeout ||
+		rr.Code != http.StatusGatewayTimeout {
 		t.Errorf("should report status code 502")
 	}
 

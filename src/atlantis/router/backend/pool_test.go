@@ -190,7 +190,7 @@ func TestHandleDummy(t *testing.T) {
 	pool.Handle(logRecord)
 
 	if logRecord.GetResponseStatusCode() != http.StatusBadGateway ||
-	     rr.Code != http.StatusBadGateway {
+		rr.Code != http.StatusBadGateway {
 		t.Errorf("should return bad gateway for dummy")
 		t.Errorf("%s | %s", logRecord.GetResponseStatusCode(), rr.Code)
 	}
@@ -203,7 +203,7 @@ func TestHandleNoNext(t *testing.T) {
 	pool.Handle(logRecord)
 
 	if logRecord.GetResponseStatusCode() != http.StatusServiceUnavailable ||
-	     rr.Code != http.StatusServiceUnavailable {
+		rr.Code != http.StatusServiceUnavailable {
 		t.Errorf("should return unavailable with no next")
 	}
 }
@@ -222,10 +222,10 @@ func TestHandle(t *testing.T) {
 
 	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
 	pool.Handle(logRecord)
-	
+
 	body, _ := ioutil.ReadAll(rr.Body)
 	if logRecord.GetResponseStatusCode() != http.StatusOK || rr.Code != http.StatusOK ||
-	     string(body) != "Mickey Mouse!" {
+		string(body) != "Mickey Mouse!" {
 		t.Errorf("should forward requests to backend")
 		t.Errorf("%d | %d | %s", logRecord.GetResponseStatusCode, rr.Code, string(body))
 	}

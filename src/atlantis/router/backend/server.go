@@ -82,11 +82,11 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 			defer resErr.Response.Body.Close()
 
 			logRecord.CopyHeaders(resErr.Response.Header)
-			logRecord.WriteHeader(resErr.Response.StatusCode)	
+			logRecord.WriteHeader(resErr.Response.StatusCode)
 
 			err := logRecord.Copy(resErr.Response.Body)
 			if err != nil {
-			       logger.Errorf("[server %s] failed attempting to copy response body: %s\n", s.Address, err)
+				logger.Errorf("[server %s] failed attempting to copy response body: %s\n", s.Address, err)
 			} else {
 				logRecord.Log()
 			}
@@ -113,7 +113,7 @@ func (s *Server) CheckStatus(tout time.Duration) {
 		if resErr.Error == nil {
 			defer resErr.Response.Body.Close()
 
-			//if status has changed then log	
+			//if status has changed then log
 			if s.Status.ParseAndSet(resErr.Response) {
 				logger.Printf("[server %s] status code changed to %d\n", s.Address, resErr.Response.StatusCode)
 			}
@@ -134,4 +134,3 @@ func (s *Server) CheckStatus(tout time.Duration) {
 func (s *Server) Cost(accept string) uint32 {
 	return s.Status.Cost(accept) + s.Metrics.Cost()
 }
-
