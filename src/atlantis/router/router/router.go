@@ -25,8 +25,7 @@ type Router struct {
 	ZkRoot string
 
 	// ports to listen
-	ports      map[uint16]*Port
-	statusPort uint16
+	ports map[uint16]*Port
 
 	// configuration management
 	config        *config.Config
@@ -41,7 +40,7 @@ type Router struct {
 	WriteTimeout time.Duration
 }
 
-func New(zkServers string, statusPort uint16) *Router {
+func New(zkServers string) *Router {
 	// all packages use atlantis/logger's global logger
 	logger.InitPkgLogger()
 
@@ -50,8 +49,7 @@ func New(zkServers string, statusPort uint16) *Router {
 		ZkRoot: "/atlantis/router",
 		zk:     zk.ManagedZkConn(zkServers),
 
-		ports:      map[uint16]*Port{},
-		statusPort: statusPort,
+		ports: map[uint16]*Port{},
 
 		config:        c,
 		poolCallbacks: &PoolCallbacks{config: c},
@@ -74,7 +72,7 @@ func (r *Router) Run() {
 	go r.reconfigure()
 
 	// launch the statusz and debug server
-	NewStatusServer(r).Run(r.statusPort, 8*time.Second)
+	NewStatusServer(r).Run(8080, 8*time.Second)
 }
 
 func (r *Router) reconfigure() {
