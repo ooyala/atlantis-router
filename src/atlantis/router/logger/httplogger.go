@@ -174,9 +174,8 @@ func (r *HAProxyLogRecord) WriteHeader(code int){
 		r.statusCode = code
 		r.ResponseWriter.WriteHeader(code)
  	}	
-	
-
 }
+
 func (r *HAProxyLogRecord) GetResponseStatusCode() int{
 	//if status code has not been set
 	if r.statusCode < 100 || r.statusCode > 599 {

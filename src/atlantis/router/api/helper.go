@@ -2,8 +2,10 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"encoding/json"
+	"atlantis/router/api/auth"
 )
 
 
@@ -45,6 +47,11 @@ func GetMapFromReqJson(r http.Request) (map[string]interface{}, err) {
 
 }
 
+GetErrorStatusJson(status string, err error){
+
+	return GetStatusJson(fmt.Sprint(status, err))
+}
+
 
 func GetStatusJson(status string) string {
 
@@ -56,4 +63,25 @@ func GetStatusJson(status string) string {
 
 }
 
+func WriteResponse(w *http.ResponseWriter, code int, json string) {
 
+	//TODO: check if code is valid
+	w.WriteHeader(code)
+	fmt.Fprintf(w, "%s", json)
+
+}
+
+func GetUserSecretAndAuth(r *http.Request) error{
+
+	user := r.Header.Get("User")
+	secret := r.Header.Get("Secret")
+
+	if len(user) == 0 {
+		return errors.New("Could not get user header val")
+	} else if len(secret) == 0 {
+		return errors.New("Could not get secret header val")
+	}
+
+	return auth.IsAllowed(user, secret)
+
+}

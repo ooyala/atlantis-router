@@ -1,6 +1,4 @@
-
 package api
-
 
 import (
 	"net/http"
@@ -13,120 +11,113 @@ import (
 
 //TODO: before calling api/zk methods, authenticate
 func ListPools(w http.ResponseWriter, r *http.Request) {
-	
-	contentType := r.Header.Get("Content-Type")
 
-	if contentType != "application/json" {
-		//error	
-	}	
-	
-	m := GetMapFromReqJson(r)	
-	user := m["User"]
-	secret := m["Secret"]
-
-	err := auth.IsAllowed(user, secret)
+	err := GetUserSecretAndAuth(r) 
 	if err != nil {
-		//not auth error/return
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
 	}
 
 	pools, err := zk.ListPools()
 	if err != nil {
-		//error
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
  	}
 
  	poolsJson, err := json.Marshal(pools)
 	if err != nil {
-		//error 
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
 	}
 	
-	fmt.Fprintf(w, "%s", poolsJson)	
-		
+	WriteResponse(w, OkStatusCode, poolsJson)	
 }
 
 func GetPool(w http.ResponseWriter, r *http.Request) {
 	vars = mux.Vars(r)
-	contentType := r.Header.Get("Content-Type")
-	
-	if contentType != "application/json" {
-		//error
-	}
 
-	m := GetMapFromReqJson(r) 
-	user := m["User"]
-	secret := m["Secret"]
-				
-	err := auth.IsAllowed(user, secret)
+	err :=	GetUserSecretAndAuth(r) 
 	if err != nil {
-		//not auth/exit
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
 	}	 
 
 	pool, err := zk.GetPool(vars["PoolName"])
 	if err != nil {
-		//error
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
 	}
+
+	if pool.Name == "" {
+		WriteResponse(w, NotFoundStatusCode, GetStatusJson(ResourceDoesNotExistStatus + ": " + vars["PoolName"]))
+		return
+	} 
 
    	poolJson, err := json.Marshal(pool)
 	if err != nil {
-		//error
-	}	
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
 	
-	fmt.Fprintf(w, "%s", poolJson)
+
+	WriteResponse(w, OkStatusCode, poolJson)	
 }
 
 
 func SetPool(w http.ResponseWriter, r *http.Request) {
 	vars = mux.Vars(r)
-	contentType := r.Header.Get("Content-Type")
 
-	if contentType == "application/json" {
-		//error exit
-	}
-
-	b, err := GetRequestBody(r)
+	err := GetUserSecretAndAuth(r)
 	if err != nil {
-		//error
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
+	}
+	
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		WriteResponse(w, BadRequestStatusCode, GetStatusJson(IncorrectContentTypeStatus))
+		return
 	}
 
-	var apiPool types.ApiPool 
-	err = json.Unmarshal(body, &apiPool)		
+	body, err := GetRequestBody(r)
 	if err != nil {
-		//return some error or something
+		WriteResponse(w, BadRequestStatusCode, GetErrorStatusJson(CouldNotReadRequestDataStatus, err))
+		return
 	}
 
-	err := auth.IsAllowed(apiPool.User, apiPool.Secret)
+	var pool cfg.Pool 
+	err = json.Unmarshal(body, &pool)		
+	if err != nil {
+		WriteResponse(w, BadRequestStatusCode, GetErrorStatusJson(CouldNotReadRequestDataStatus, err))
+		return
+	}
 
 
-	err := zk.SetPool(apiPool.Pool)
+	err = zk.SetPool(pool)
 
 	if err != nil {
-		//error
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
 	}
 
-	fmt.Fprintf(w, "%s", GetStatusJson("Pool set succesfully")) 
-
+	WriteResponse(w, OkStatusCode, GetStatusJson(RequestSuccesfulStatus))
 }
 
 func DeletePool(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-
-	if contentType == "application/json" {
-		
-		m, err := GetMapFromReqJson(r)
-		if err != nil {
-			//error
-		}	
-		//name := m["Name"]
-		//user := m["User"]
-		//secret := m["Secret"]
 	
-	} 
-	
-
-	err := zk.DeletePool(vars["PoolName"])	
-
+	err := GetUserSecretAndAuth(r)
 	if err != nil {
-		//error
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
 	}
 
-	fmt.Fprintf(w, "%s", GetStatusJson(vars["PoolName"] + " deleted succesfully"))	
+	err = zk.DeletePool(vars["PoolName"])	
+
+	if err != nil {
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
+
+	WriteResponse(w, OkStatusCode, GetStatusJson(RequestSuccesfulStatus))
 }

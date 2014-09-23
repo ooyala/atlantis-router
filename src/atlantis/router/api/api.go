@@ -11,6 +11,29 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+// Status Strings and a colon which will seperate them from specific reason
+
+	NotAuthenticatedStatus = "Authentication not succesful: "
+	IncorrectContentTypeStatus = "Request failed, the content-type must be application/json"
+	CouldNotReadRequestDataStatus = "Failed to read request data: "
+	CouldNotCompleteOperationStatus = "The requested operation could not be completed: "
+	ResourceDoesNotExistStatus = "The requested resources does not exist"
+	RequestSuccesfulStatus = "The request was succesfull"
+)
+
+const (
+// Status codes supported for the API
+
+	OkStatusCode = 200
+	BadRequestStatusCode = 400
+	NotAuthorizedStatusCode = 401
+	NotFoundStatusCode = 404
+	ServerErrorCode = 500
+) 
+
+
+
 
 func NotFound(w http.ResponseWriter, r *http.Request){
 	w.Header().Set("Content-Type", "text/html")
@@ -68,5 +91,18 @@ func Init(listenAddr string) error{
 	gmux.HandleFunc("/ports/{Port}", GetPort).Methods("GET")
 	gmux.HandleFunc("/ports/{Port}", SetPort).Methods("PUT")
 	gmux.HandleFunc("/ports/{Port}", DeletePort).Methods("DELETE")
+
+	handler := apachelog.NewHandler(HandlerFunc(gmux), os.Stderr)
+	server = &http.Server{Addr: listenAddr, Handler: handler}
+	lAddr = listenAddr
+	return nil
+
+}
+
+func Listen() {
+
+	if server == nil {
+		panic("Not Initialized.")
+	}
 
 }

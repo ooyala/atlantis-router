@@ -24,11 +24,11 @@ func SetPool(pool cfg.Pool) error {
 
 	if pool.Name == "" {
                 return errors.New("Please specify a name")
-        } else if pool.HealthzEvery == "" {
+        } else if pool.Config.HealthzEvery == "" {
                 return errors.New("Please specify a healthz check frequency")
-        } else if pool.HealthzTimeout == "" {
+        } else if pool.Config.HealthzTimeout == "" {
                 return errors.New("Please specify a healthz timeout")
-        } else if pool.RequestTimeout == "" {
+        } else if pool.Config.RequestTimeout == "" {
                 return errors.New("Please specify a request timeout")
         } // no need to check hosts. an empty pool is still a valid pool
 

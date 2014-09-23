@@ -154,7 +154,7 @@ Some of the API Methods are shown to return a JSON field "Status". This field is
 200
 
 {
-	"Hosts:"[
+	"poolName:"[
     	{"Address": "host1Address"},
         {"Address": "host2Address"},
         {"Address": "host3Address"}

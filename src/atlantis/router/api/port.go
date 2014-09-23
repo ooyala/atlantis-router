@@ -9,78 +9,113 @@ import (
 	cfg "atlantis/router/config"
 )
 
-//TODO: before calling api/zk methods, authenticate
 func ListPorts(w http.ResponseWriter, r *http.Request) {
-	
-	contentType := r.Header.Get("Content-Type")
 
-	if contentType == "application/json" {
+	err := GetUserSecretAndAuth(r)
+	if err != nil {
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
+	}	
 	
-		m := GetMapFromReqJson(r)	
-		//user := m["User"]
-		//secret := m["Secret"]
-	} 
-
 	ports, err := zk.ListPorts()
-		
+	if err != nil {
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
+
+	var pMap map[string][]uint16
+	pMap["Ports"] = ports		
+	
+	pJson, err := json.Marshal(pMap)
+	if err != nil {
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
+	
+	WriteResponse(w, OkStatusCode, pJson)
+	
 }
 
 func GetPort(w http.ResponseWriter, r *http.Request) {
 	vars = mux.Vars(r)
-	contentType := r.Header.Get("Content-Type")
-	
-	if contentType == "application/json" {
 
-		m := GetMapFromReqJson(r) 
-		//name := m["Name"]
-		//user := m["User"]
-		//secret := m["Secret"]
-				
+	err := GetUserSecretAndAuth(r)
+	if err != nil {
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
 	}
- 
+	 
 	port, err := zk.GetPort(vars["PortName"])
+	if err != nil {
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
+	
+	if port.Port == 0 {
+		WriteResponse(w, NotFoundStatusCode, GetStatusJson(ResourceDoesNotExistStatus + ": " + vars["PortName"]))
+		return
+	}
+
+	pJson, err := json.Marshal(port)
+	if err != nil {
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
+
+	WriteResponse(w, OkStatusCode, pJson)
 }
 
 
 func SetPort(w http.ResponseWriter, r *http.Request) {
-	vars = mux.Vars(r)
-	contentType := r.Header.Get("Content-Type")
 
-	var port cfg.Port
+	err := GetUserSecretAndAuth(r)
+	if err != nil {
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
+	}
+	
 	//Accept incoming as Json
-	if contentType == "application/json" {
+	if r.Header.Get("Content-Type") != "application/json" {
+		WriteResponse(w, BadRequestStatusCode, GetStatusJson(IncorrectContentTypeStatus))
+		return
+	}
+	
+	body, err := GetRequestBody(r)
+	if err != nil {
+		WriteResponse(w, BadRequestStatusCode, GetErrorStatusJson(CouldNotReadRequestDataStatus, err))
+		return
+	}
+	var port cfg.Port
+	err = json.Unmarshal(body, &port)
+	if err != nil {
+		WriteResponse(w, BadRequestStatusCode, GetErrorStatusJson(CouldNotReadRequestDataStatus, err))
+		return
+	}
 
-		body, err := GetRequestBody(r)
-		if err != nil {
-			//error
-		}
-		err = json.Unmarshal(body, &port)
-		if err != nil {
-			//return some error or something
-		}
+	
+	err = zk.SetPort(port)
+	if err != nil {
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
 
-	} 
-
-	//handle return	
-	err := zk.SetPort(port)
-
+	WriteResponse(w, OkStatusCode, GetStatusJson(RequestSuccesfulStatus))
 }
 
 func DeletePort(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	if contentType == "application/json" {
-		
-		m, err := GetMapFromReqJson(r)
-		if err != nil {
-			//error
-		}	
-		//name := m["Name"]
-		//user := m["User"]
-		//secret := m["Secret"]
-	
-	} 
+	err := GetUserSecretAndAuth(r)
+	if err != nil {
+		WriteResponse(w, NotAuthorizedStatusCode, GetErrorStatusJson(NotAuthenticatedStatus, err))
+		return
+	}
 	
 	err = zk.DeletePort(vars["PortName"])	
-	
+	if err != nil {
+		WriteResponse(w, ServerErrorCode, GetErrorStatusJson(CouldNotCompleteOperationStatus, err))
+		return
+	}
+
+	WriteResponse(w, OkStatusCode, GetStatusJson(RequestSuccesfulStatus))
 }
