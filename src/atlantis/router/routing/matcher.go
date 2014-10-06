@@ -60,6 +60,8 @@ func DefaultMatcherFactory() *MatcherFactory {
 			"path-prefix": NewPathPrefixMatcher,
 			"path-suffix": NewPathSuffixMatcher,
 			"path-regexp": NewPathRegexpMatcher,
+			"query-param-value": NewQueryParamValueMatcher,
+			"query-raw-regexp": NewQueryRawRegexpMatcher,
 		},
 	}
 }
