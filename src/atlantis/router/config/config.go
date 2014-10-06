@@ -19,6 +19,8 @@ import (
 	"sync"
 )
 
+var MaxRoutingHops = 128
+
 type Config struct {
 	sync.RWMutex
 	MatcherFactory *routing.MatcherFactory
@@ -43,12 +45,17 @@ func (c *Config) route(trie *routing.Trie, r *http.Request) *backend.Pool {
 	var pool *backend.Pool
 	var next *routing.Trie
 
-	for next = trie; next != nil; {
+	next = trie
+	for hops := 0; hops < MaxRoutingHops; hops++ {
 		pool, next = next.Walk(r)
 		if pool != nil {
 			return pool
 		}
+		if next == nil {
+			break
+		}
 	}
+
 	return nil
 }
 

@@ -31,7 +31,7 @@ func (c *Config) PrintRouting(port uint16, r *http.Request) string {
 	indent := "  "
 
 	next = c.Ports[port]
-	for next != nil || pool != nil {
+	for hops := 0; hops < MaxRoutingHops; hops++ {
 		if pool != nil {
 			output += fmt.Sprintf("%spool %s\n", indent, pool.Name)
 			return output
@@ -52,7 +52,13 @@ func (c *Config) PrintRouting(port uint16, r *http.Request) string {
 				pool, next = nil, nil
 			}
 		}
+
+		if next == nil && pool == nil {
+			output += fmt.Sprintf("%snext = nil, pool = nil!\n", indent)
+			return output
+		}
 	}
-	fmt.Sprintf("%snext = nil, pool = nil!\n", indent)
+
+	output += fmt.Sprintf("%sMaxRoutingHops Exceeded!")
 	return output
 }
