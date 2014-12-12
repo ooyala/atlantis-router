@@ -21,6 +21,7 @@ const (
 	StatusDegraded    = "DEGRADED"
 	StatusCritical    = "CRITICAL"
 	StatusMaintenance = "MAINTENANCE"
+	StatusUnknown     = "UNKNOWN"
 )
 
 type ServerStatus struct {
@@ -31,7 +32,7 @@ type ServerStatus struct {
 
 func NewServerStatus() ServerStatus {
 	return ServerStatus{
-		Current: StatusMaintenance,
+		Current: StatusUnknown,
 		Checked: time.Now(),
 		Changed: time.Now(),
 	}
@@ -64,20 +65,16 @@ func StatusWeight(s string) uint32 {
 }
 
 func IsValidStatus(s string) bool {
-	return s == StatusOk || s == StatusDegraded || s == StatusCritical
+	return s == StatusOk || s == StatusDegraded || s == StatusCritical || s == StatusMaintenance
 }
 
 func (s *ServerStatus) ParseAndSet(res *http.Response) bool {
-	if res.StatusCode != http.StatusOK {
-		return s.Set(StatusMaintenance)
-	}
-
 	hdr := res.Header.Get("Server-Status")
 	if IsValidStatus(hdr) {
 		return s.Set(hdr)
 	}
 
-	return s.Set(StatusMaintenance)
+	return s.Set(StatusUnknown)
 }
 
 func (s *ServerStatus) Cost(accept string) uint32 {
