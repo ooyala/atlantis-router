@@ -15,6 +15,7 @@ import (
 	"atlantis/router/logger"
 	"net/http"
 	"time"
+	"strings"
 )
 
 type PoolConfig struct {
@@ -101,8 +102,8 @@ func (p Pool) Next() *Server {
 	var cost uint32 = 0xffffffff
 
 	for _, server := range p.Servers {
-		// Never send traffic to servers under maintenance.
-		if server.Status.Current == StatusMaintenance {
+		// Never send traffic to servers under maintenance or unknown.
+		if strings.EqualFold(server.Status.Current, StatusMaintenance) || strings.EqualFold(server.Status.Current, StatusUnknown) {
 			continue
 		}
 
