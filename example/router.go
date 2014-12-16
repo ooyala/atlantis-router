@@ -31,5 +31,5 @@ func main() {
 	}
 
 	flag.StringVar(&servers, "zk", "localhost:2181", "zookeeper connection string")
-	router.New(servers).Run()
+	router.New(servers, 8080).Run()
 }
