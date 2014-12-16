@@ -25,8 +25,8 @@ func TestNewServer(t *testing.T) {
 		t.Errorf("should set server address")
 	}
 
-	if server.Status.Current != StatusMaintenance {
-		t.Errorf("should mark server under maintenance")
+	if server.Status.Current != StatusUnknown {
+		t.Errorf("should mark default server status as unknown")
 	}
 }
 
@@ -150,11 +150,16 @@ func TestCheckStatus(t *testing.T) {
 	defer backend.Shutdown()
 
 	server := NewServer(backend.Address())
-
 	backend.SetStatus(http.StatusInternalServerError, "UNKNOWN")
 	server.CheckStatus(100 * time.Millisecond)
+	if server.Status.Current != StatusUnknown {
+		t.Errorf("should set status to unknown")
+	}
+
+	backend.SetStatus(http.StatusOK, "MainTENANCE")
+	server.CheckStatus(100 * time.Millisecond)
 	if server.Status.Current != StatusMaintenance {
-		t.Errorf("should set status to maintenance on error")
+		t.Errorf("should set status to maintenance")
 	}
 
 	backend.SetStatus(http.StatusOK, "DEGRADED")

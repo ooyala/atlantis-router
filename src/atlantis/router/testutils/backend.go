@@ -115,7 +115,7 @@ func (b *Backend) SetResponse(code int, body string) {
 }
 
 func (b *Backend) SetStatus(code int, header string) {
-	b.Handler.Status.Set(code, header)
+	b.Handler.Status.Set(code, strings.ToUpper(header))
 }
 
 func (b *Backend) URL() string {
