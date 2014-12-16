@@ -13,8 +13,8 @@ package backend
 
 import (
 	"net/http"
-	"time"
 	"strings"
+	"time"
 )
 
 const (
@@ -66,7 +66,10 @@ func StatusWeight(s string) uint32 {
 }
 
 func IsValidStatus(s string) bool {
-	return strings.EqualFold(s, StatusOk) || strings.EqualFold(s, StatusDegraded) || strings.EqualFold(s, StatusCritical) || strings.EqualFold(s, StatusMaintenance)
+	return strings.EqualFold(s, StatusOk) ||
+		strings.EqualFold(s, StatusDegraded) ||
+		strings.EqualFold(s, StatusCritical) ||
+		strings.EqualFold(s, StatusMaintenance)
 }
 
 func (s *ServerStatus) ParseAndSet(res *http.Response) bool {

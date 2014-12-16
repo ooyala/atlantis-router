@@ -96,16 +96,6 @@ func TestParseAndSet(t *testing.T) {
 		t.Errorf("should set status to degraded from header")
 	}
 
-	/*
-	backend.SetStatus(http.StatusInternalServerError, "OK")
-	res, _ = client.Do(req)
-
-	status.ParseAndSet(res)
-	if status.Current != StatusMaintenance {
-		t.Errorf("should set status to maintenance when not ok")
-	}
-	*/
-	
 	backend.SetStatus(http.StatusOK, "MAINTENANCE")
 	res, _ = client.Do(req)
 
@@ -114,8 +104,6 @@ func TestParseAndSet(t *testing.T) {
 		t.Errorf("should set status to maintenance from header")
 	}
 }
-
-/*
 
 func TestCostMasking(t *testing.T) {
 	status0 := NewServerStatus()
@@ -186,4 +174,3 @@ func TestSlowStartShape(t *testing.T) {
 		t.Errorf("should be 0 after Tstartup")
 	}
 }
-*/
