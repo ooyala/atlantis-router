@@ -81,7 +81,7 @@ routertest:
 	@go build -o bm/routertest/routertest bm/routertest/routertest.go
 
 clean:
-	@rm -rf bm/routertest/routertest bin $(DEB_STAGING)
+	@rm -rf bm/routertest/routertest bin $(DEB_STAGING) atlantis-router_*.deb
 fmt:
 	@find src -name \*.go -exec gofmt -l -w {} \;
 	@find example -name \*.go -exec gofmt -l -w {} \;
