@@ -43,7 +43,6 @@ install-deps:
 	@echo "Done."
 
 deb: clean build example
-	@cd $(PROJECT_ROOT)/deb
 	@cp -a $(PROJECT_ROOT)/deb $(DEB_STAGING)
 	@cp -a $(PROJECT_ROOT)/bin $(PKG_INSTALL_DIR)/
 	@sed -ri "s/__VERSION__/$(VERSION)/" $(DEB_STAGING)/$(PROJECT_NAME)/DEBIAN/control
@@ -82,7 +81,7 @@ routertest:
 	@go build -o bm/routertest/routertest bm/routertest/routertest.go
 
 clean:
-	@rm -rf bm/routerutertest/routertest bin $(DEB_STAGING)
+	@rm -rf bm/routertest/routertest bin $(DEB_STAGING)
 fmt:
 	@find src -name \*.go -exec gofmt -l -w {} \;
 	@find example -name \*.go -exec gofmt -l -w {} \;
