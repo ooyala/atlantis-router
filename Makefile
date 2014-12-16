@@ -39,12 +39,10 @@ install-deps:
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
 	@go get launchpad.net/gozk
-	@echo "gozk Installed"
 	@go get github.com/gorilla/mux
 	@echo "Done."
 
 deb: clean build example
-	@echo "Before copying deb"
 	@cd $(PROJECT_ROOT)/deb
 	@cp -a $(PROJECT_ROOT)/deb $(DEB_STAGING)
 	@cp -a $(PROJECT_ROOT)/bin $(PKG_INSTALL_DIR)/
