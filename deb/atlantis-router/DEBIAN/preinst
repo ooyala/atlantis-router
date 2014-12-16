@@ -1,0 +1,4 @@
+#!/bin/bash
+if [ -e /etc/service/atlantis-router ]; then
+  rm /etc/service/atlantis-router
+fi
