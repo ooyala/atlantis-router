@@ -38,8 +38,8 @@ install-deps:
 	@echo "Installing Dependencies..."
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
-	@go get launchpad.net/gozk
-	@go get github.com/gorilla/mux
+	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gozk
+	@GOPATH=$(VENDOR_PATH) go get github.com/gorilla/mux
 	@echo "Done."
 
 deb: clean build example
