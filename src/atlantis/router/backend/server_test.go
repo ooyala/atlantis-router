@@ -158,7 +158,7 @@ func TestCheckStatus(t *testing.T) {
 		t.Errorf("should set status to unknown")
 	}
 	
-	backend.SetStatus(http.StatusOK, "MAINTENANCE")
+	backend.SetStatus(http.StatusOK, "MainTENANCE")
 	server.CheckStatus(100 * time.Millisecond)
 	if server.Status.Current != StatusMaintenance {
 		t.Errorf("should set status to maintenance")
