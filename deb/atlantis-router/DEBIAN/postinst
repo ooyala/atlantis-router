@@ -3,4 +3,4 @@
 echo "reviving router..."
 cd /etc/service
 ln -s /opt/atlantis-router atlantis-router
-echo "registry revived."
+echo "router revived."
