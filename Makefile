@@ -14,6 +14,14 @@ ifeq ($(shell pwd | xargs dirname | xargs basename),lib)
 else
 	VENDOR_PATH := $(PROJECT_ROOT)/vendor
 endif
+PROJECT_NAME := $(shell pwd | xargs basename)
+
+DEB_STAGING := $(PROJECT_ROOT)/staging
+PKG_INSTALL_DIR := $(DEB_STAGING)/$(PROJECT_NAME)/opt/atlantis-router
+
+ifndef VERSION
+	VERSION := "0.1.0"
+endif
 
 GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH)
 export GOPATH
@@ -21,14 +29,25 @@ export GOPATH
 all:
 	@echo "make fmt|install-deps|test|annotate|example|routertest|clean"
 
+init: clean
+	@mkdir bin
+
+build: init install-deps example
+
 install-deps:
 	@echo "Installing Dependencies..."
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
 	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gozk
-	@GOPATH=$(VENDOR_PATH) go get code.google.com/p/go.tools/cmd/cover
 	@GOPATH=$(VENDOR_PATH) go get github.com/gorilla/mux
 	@echo "Done."
+
+deb: clean build example
+	@cp -a $(PROJECT_ROOT)/deb $(DEB_STAGING)
+	@cp -a $(PROJECT_ROOT)/bin $(PKG_INSTALL_DIR)/
+	@sed -ri "s/__VERSION__/$(VERSION)/" $(DEB_STAGING)/$(PROJECT_NAME)/DEBIAN/control
+	@sed -ri "s/__PACKAGE__/atlantis-router/" $(DEB_STAGING)/$(PROJECT_NAME)/DEBIAN/control
+	@cd $(DEB_STAGING) && dpkg -b $(PROJECT_NAME) $(PROJECT_ROOT)
 
 test:
 ifdef TEST_PACKAGE
@@ -55,14 +74,14 @@ endif
 
 .PHONY: example
 example:
-	@go build -o example/router example/router.go
+	@go build -o bin/router example/router.go
 
 .PHONY: routertest
 routertest:
 	@go build -o bm/routertest/routertest bm/routertest/routertest.go
 
 clean:
-	@rm -f bm/routertest/routertest example/router
+	@rm -rf bm/routertest/routertest bin $(DEB_STAGING) atlantis-router_*.deb
 fmt:
 	@find src -name \*.go -exec gofmt -l -w {} \;
 	@find example -name \*.go -exec gofmt -l -w {} \;
