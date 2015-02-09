@@ -20,5 +20,3 @@ kill_router() {
 if [ -L '/etc/service/atlantis-router' ]; then
   kill_router
 fi
-
-mkdir -p /var/log/atlantis/router
