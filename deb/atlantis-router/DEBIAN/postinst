@@ -3,4 +3,17 @@
 echo "reviving router..."
 cd /etc/service
 ln -s /opt/atlantis-router atlantis-router
-echo "registry revived."
+i=0
+while [ -z "$(pidof router)" ] && [ $i -lt 10 ]; do
+  echo "waiting for router to revive..."
+  sleep 2
+  if [ -p /opt/atlantis-router/supervise/ok ]; then
+    sv up atlantis-router
+  fi
+  (( i++ ))
+done
+if [ $i -eq 10 ]; then
+  echo "could not revive router."
+  exit 1
+fi
+echo "router revived."

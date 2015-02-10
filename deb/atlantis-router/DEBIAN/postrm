@@ -1,4 +1,5 @@
 #!/bin/bash -e
 
-rm -rf /opt/atlantis-router
-
+if [ "$1" != "upgrade" ]; then
+  rm -rf /opt/atlantis-router
+fi
