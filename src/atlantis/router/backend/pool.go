@@ -14,8 +14,8 @@ package backend
 import (
 	"atlantis/router/logger"
 	"net/http"
-	"time"
 	"strings"
+	"time"
 )
 
 type PoolConfig struct {
