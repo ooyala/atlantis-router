@@ -19,8 +19,8 @@ import (
 )
 
 type QueryParamValueMatcher struct {
-	Param string
-	Value string
+	Param      string
+	Value      string
 	ParseError bool
 }
 
@@ -62,7 +62,7 @@ func NewQueryParamValueMatcher(r string) Matcher {
 }
 
 type QueryRawRegexpMatcher struct {
-	Regexp *regexp.Regexp
+	Regexp     *regexp.Regexp
 	ParseError bool
 }
 
