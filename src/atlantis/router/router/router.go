@@ -102,3 +102,7 @@ func (r *Router) AddPort(p uint16) {
 func (r *Router) DelPort(p uint16) {
 	r.ports[p].Shutdown()
 }
+
+func (r *Router) IsConnectedToZk() bool {
+	return r.zk.IsConnected()
+}

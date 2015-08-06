@@ -31,6 +31,14 @@ func NewStatusServer(r *Router) *StatusServer {
 	}
 }
 
+func (s *StatusServer) HealthZ(w http.ResponseWriter, r *http.Request) {
+	if s.router.IsConnectedToZk() {
+		fmt.Fprintf(w, "OK")
+	} else {
+		fmt.Fprintf(w, "DEGRADED")
+	}
+}
+
 func (s *StatusServer) StatusZ(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "statusz.html")
 }
@@ -62,6 +70,7 @@ func (s *StatusServer) PrintRouting(w http.ResponseWriter, r *http.Request) {
 
 func (s *StatusServer) Run(port uint16, tout time.Duration) {
 	gmux := mux.NewRouter()
+	gmux.HandleFunc("/healthz", s.HealthZ).Methods("GET")
 	gmux.HandleFunc("/statusz", s.StatusZ).Methods("GET")
 	gmux.HandleFunc("/statusz.json", s.StatusZJSON).Methods("GET")
 	gmux.PathPrefix("/{port:[0-9]+}").HandlerFunc(s.PrintRouting)

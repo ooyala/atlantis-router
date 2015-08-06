@@ -21,18 +21,20 @@ import (
 
 type ZkConn struct {
 	sync.Mutex
-	ResetCh chan bool
-	servers string
-	Conn    *zookeeper.Conn
-	eventCh <-chan zookeeper.Event
-	killCh  chan bool
+	ResetCh   chan bool
+	servers   string
+	Conn      *zookeeper.Conn
+	eventCh   <-chan zookeeper.Event
+	killCh    chan bool
+	connected bool
 }
 
 func ManagedZkConn(servers string) *ZkConn {
 	zk := &ZkConn{
-		ResetCh: make(chan bool),
-		servers: servers,
-		killCh:  make(chan bool),
+		ResetCh:   make(chan bool),
+		servers:   servers,
+		killCh:    make(chan bool),
+		connected: false,
 	}
 
 	go zk.dialExclusive()
@@ -59,6 +61,7 @@ func (z *ZkConn) dialExclusive() {
 
 func (z *ZkConn) dial() error {
 	var err error
+	z.connected = false
 	z.Conn, z.eventCh, err = zookeeper.Dial(z.servers, 30*time.Second)
 	if err != nil {
 		return err
@@ -68,6 +71,7 @@ func (z *ZkConn) dial() error {
 	if err != nil {
 		return err
 	}
+	z.connected = true
 
 	go z.monitorEventCh()
 
@@ -104,5 +108,13 @@ func (z *ZkConn) monitorEventCh() {
 		case <-z.killCh:
 			return
 		}
+	}
+}
+
+func (z *ZkConn) IsConnected() bool {
+	if z.connected {
+		return true
+	} else {
+		return false
 	}
 }
