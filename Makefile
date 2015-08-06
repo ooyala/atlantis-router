@@ -36,9 +36,7 @@ build: init install-deps example
 
 install-deps:
 	@echo "Installing Dependencies..."
-	@rm -rf $(VENDOR_PATH)
-	@mkdir -p $(VENDOR_PATH) || exit 2
-	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gozk
+	#@rm -rf $(VENDOR_PATH)/src/github.com/
 	@GOPATH=$(VENDOR_PATH) go get github.com/gorilla/mux
 	@echo "Done."
 
