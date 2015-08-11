@@ -159,7 +159,7 @@ func TestSlowStartShape(t *testing.T) {
 
 	t.Logf("Tdelta, SlowStartFactor")
 	fact := status.SlowStartFactor()
-	for i := 0; i < Tstartup; i++ {
+	for i := 0; i < Tstartup-1; i++ {
 		time.Sleep(1 * time.Second)
 		fact_ := status.SlowStartFactor()
 		t.Logf("%2d, %d", i, fact_)
@@ -168,8 +168,7 @@ func TestSlowStartShape(t *testing.T) {
 		}
 		fact = fact_
 	}
-
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(1 * time.Second)
 	if status.SlowStartFactor() != 0 {
 		t.Errorf("should be 0 after Tstartup")
 	}
