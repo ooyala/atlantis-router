@@ -52,16 +52,16 @@ func (f *MatcherFactory) Make(kind, value string) (Matcher, error) {
 func DefaultMatcherFactory() *MatcherFactory {
 	return &MatcherFactory{
 		lut: map[string]matcherMaker{
-			"static":      NewStaticMatcher,
-			"percent":     NewPercentMatcher,
-			"host":        NewHostMatcher,
-			"multi-host":  NewMultiHostMatcher,
-			"header":      NewHeaderMatcher,
-			"path-prefix": NewPathPrefixMatcher,
-			"path-suffix": NewPathSuffixMatcher,
-			"path-regexp": NewPathRegexpMatcher,
+			"static":            NewStaticMatcher,
+			"percent":           NewPercentMatcher,
+			"host":              NewHostMatcher,
+			"multi-host":        NewMultiHostMatcher,
+			"header":            NewHeaderMatcher,
+			"path-prefix":       NewPathPrefixMatcher,
+			"path-suffix":       NewPathSuffixMatcher,
+			"path-regexp":       NewPathRegexpMatcher,
 			"query-param-value": NewQueryParamValueMatcher,
-			"query-raw-regexp": NewQueryRawRegexpMatcher,
+			"query-raw-regexp":  NewQueryRawRegexpMatcher,
 		},
 	}
 }

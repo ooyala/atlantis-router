@@ -78,9 +78,10 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 	logRecord.UpdateTr(tstart, tend)
 	select {
 	case resErr := <-resErrCh:
-		if resErr.Error == nil {
+		if resErr.Response != nil {
 			defer resErr.Response.Body.Close()
-
+		}
+		if resErr.Error == nil {
 			logRecord.CopyHeaders(resErr.Response.Header)
 			logRecord.WriteHeader(resErr.Response.StatusCode)
 
@@ -110,8 +111,10 @@ func (s *Server) CheckStatus(tout time.Duration) {
 
 	select {
 	case resErr := <-resErrCh:
-		if resErr.Error == nil {
+		if resErr.Response != nil {
 			defer resErr.Response.Body.Close()
+		}
+		if resErr.Error == nil {
 
 			//if status has changed then log
 			if s.Status.ParseAndSet(resErr.Response) {
