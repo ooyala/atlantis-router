@@ -12,7 +12,7 @@
 package testutils
 
 import (
-	"launchpad.net/gozk"
+	"github.com/scalingdata/gozk"
 	"testing"
 	"time"
 )

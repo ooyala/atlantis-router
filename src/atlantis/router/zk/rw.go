@@ -16,7 +16,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"launchpad.net/gozk"
+	"github.com/scalingdata/gozk"
 	"path"
 	"strconv"
 )

@@ -14,7 +14,7 @@ package zk
 import (
 	"atlantis/router/logger"
 	"errors"
-	"launchpad.net/gozk"
+	"github.com/scalingdata/gozk"
 	"sync"
 	"time"
 )

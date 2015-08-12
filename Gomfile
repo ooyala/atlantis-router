@@ -1,0 +1,3 @@
+gom 'github.com/scalingdata/gozk', :commit => 'a7d78aed637bdb8d5372f0dc878c1ce05b9ffa0f' 
+gom 'github.com/gorilla/mux', :commit => '5112c33f3a6ef694c1e5784b68981f08b3f0327c'
+
