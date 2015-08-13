@@ -26,6 +26,10 @@ endif
 GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH)
 export GOPATH
 
+GOM := $(VENDOR_PATH)/bin/gom
+GOM_VENDOR_NAME := vendor
+export GOM_VENDOR_NAME
+
 all:
 	@echo "make fmt|install-deps|test|annotate|example|routertest|clean"
 
@@ -38,8 +42,8 @@ install-deps:
 	@echo "Installing Dependencies..."
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
-	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gozk
-	@GOPATH=$(VENDOR_PATH) go get github.com/gorilla/mux
+	@GOPATH=$(VENDOR_PATH) go get github.com/mattn/gom
+	$(GOM) install
 	@echo "Done."
 
 deb: clean build example

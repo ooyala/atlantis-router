@@ -13,7 +13,7 @@ package zk
 
 import (
 	"atlantis/router/logger"
-	"launchpad.net/gozk"
+	"github.com/scalingdata/gozk"
 	"path"
 )
 

@@ -13,7 +13,7 @@ package zk
 
 import (
 	"atlantis/router/testutils"
-	"launchpad.net/gozk"
+	"github.com/scalingdata/gozk"
 	"log"
 	"runtime"
 	"testing"

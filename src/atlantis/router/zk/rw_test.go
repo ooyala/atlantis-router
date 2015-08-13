@@ -15,7 +15,7 @@ import (
 	"atlantis/router/config"
 	"atlantis/router/testutils"
 	"encoding/json"
-	"launchpad.net/gozk"
+	"github.com/scalingdata/gozk"
 	"path"
 	"sort"
 	"testing"
