@@ -118,7 +118,7 @@ func (r *HAProxyLogRecord) Log() {
 	//build cookie strings
 	r.capturedReqCookie = getCookiesString(r.Request.Cookies())
 
-	timeFormatted := r.acceptDate.Format("02/Jan/2006:03:04:05.555")
+	timeFormatted := r.acceptDate.Format("02/Jan/2006:15:04:05.555")
 
 	//calculate the queue/wait times
 	r.tt = int64((r.serverResTime.UnixNano() - r.acceptDate.UnixNano()) / int64(time.Millisecond))      // total time from accepted to final response
