@@ -19,6 +19,12 @@ import (
 	"time"
 )
 
+func newServerHeaders() *map[string]string {
+	headers := make(map[string]string)
+	headers["Cache-Control"] = "no-cache"
+	return &headers
+}
+
 func TestNewServer(t *testing.T) {
 	server := NewServer("127.0.0.1:80")
 	if server.Address != "127.0.0.1:80" {
@@ -86,7 +92,7 @@ func TestHandleResponse(t *testing.T) {
 
 	server := NewServer(backend.Address())
 	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
-	server.Handle(logRecord, 100*time.Millisecond)
+	server.Handle(logRecord, 100*time.Millisecond, newServerHeaders())
 
 	if logRecord.GetResponseStatusCode() != http.StatusOK {
 		t.Errorf("should set status code")
@@ -103,7 +109,7 @@ func TestHandleXForwardedFor(t *testing.T) {
 
 	server := NewServer(backend.Address())
 	logRecord, _ := testutils.NewTestHAProxyLogRecord(backend.URL())
-	server.Handle(logRecord, 100*time.Millisecond)
+	server.Handle(logRecord, 100*time.Millisecond, newServerHeaders())
 
 	elm := backend.Handler.Recorded.Front()
 	rec := elm.Value.(testutils.RequestAndTime).R
@@ -118,7 +124,7 @@ func TestHandleResponseHeaders(t *testing.T) {
 
 	server := NewServer(backend.Address())
 	logRecord, _ := testutils.NewTestHAProxyLogRecord(backend.URL() + "/healthz")
-	server.Handle(logRecord, 100*time.Millisecond)
+	server.Handle(logRecord, 100*time.Millisecond, newServerHeaders())
 
 	if logRecord.GetResponseHeaders()["Server-Status"][0] != "OK" {
 		t.Errorf("should copy response headers")
@@ -132,7 +138,7 @@ func TestHandleTimeout(t *testing.T) {
 
 	server := NewServer(backend.Address())
 	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
-	server.Handle(logRecord, 10*time.Millisecond)
+	server.Handle(logRecord, 10*time.Millisecond, newServerHeaders())
 
 	if logRecord.GetResponseStatusCode() != http.StatusGatewayTimeout ||
 		rr.Code != http.StatusGatewayTimeout {

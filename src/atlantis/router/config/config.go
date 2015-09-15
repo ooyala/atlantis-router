@@ -106,7 +106,7 @@ func (c *Config) UpdatePool(pool Pool) {
 		return
 	}
 
-	c.Pools[pool.Name].Reconfigure(c.ConstructPoolConfig(pool))
+	c.Pools[pool.Name].Reconfigure(c.ConstructPoolConfig(pool), c.ConstructPoolHeaders(pool))
 }
 
 func (c *Config) DelPool(name string) {

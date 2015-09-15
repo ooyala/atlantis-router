@@ -134,7 +134,7 @@ func TestManageTree(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	if len(track.Track) != 5 {
-		t.Errorf("should be tracking 2 nodes")
+		t.Errorf("should be tracking 5 nodes")
 	} else if !track.tally(level0, StatusCreated) {
 		t.Errorf("level0 should have status created")
 	}
@@ -153,7 +153,7 @@ func TestManageTree(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	if len(track.Track) != 8 {
-		t.Errorf("should be tracking 6 nodes")
+		t.Errorf("should be tracking 8 nodes")
 	} else if !track.tally(level0, StatusCreated) {
 		t.Errorf("level0 should have status created")
 	} else if !track.tally(level1, StatusCreated) {

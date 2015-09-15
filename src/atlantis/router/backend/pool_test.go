@@ -15,6 +15,7 @@ import (
 	"atlantis/router/testutils"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -28,6 +29,12 @@ func newTestConfig() PoolConfig {
 	}
 }
 
+func newTestHeaders() map[string]string {
+	headers := make(map[string]string)
+	headers["Cache-Control"] = "no-cache"
+	return headers
+}
+
 func TestDummyPool(t *testing.T) {
 	pool := DummyPool("dummy")
 	defer pool.Shutdown()
@@ -38,7 +45,7 @@ func TestDummyPool(t *testing.T) {
 }
 
 func TestNewPool(t *testing.T) {
-	pool := NewPool("test", newTestConfig())
+	pool := NewPool("test", newTestConfig(), newTestHeaders())
 	defer pool.Shutdown()
 
 	if pool == nil {
@@ -56,10 +63,13 @@ func TestNewPool(t *testing.T) {
 	if pool.Config != newTestConfig() {
 		t.Errorf("should set pool config")
 	}
+	if !reflect.DeepEqual(pool.Headers, newTestHeaders()) {
+		t.Errorf("should set pool headers")
+	}
 }
 
 func TestAddServer(t *testing.T) {
-	pool := NewPool("test", newTestConfig())
+	pool := NewPool("test", newTestConfig(), newTestHeaders())
 	defer pool.Shutdown()
 
 	pool.AddServer("127.0.0.1:80", NewServer("127.0.0.1:80"))
@@ -74,7 +84,7 @@ func TestAddServer(t *testing.T) {
 }
 
 func TestDelServer(t *testing.T) {
-	pool := NewPool("test", newTestConfig())
+	pool := NewPool("test", newTestConfig(), newTestHeaders())
 	defer pool.Shutdown()
 
 	pool.AddServer("127.0.0.1:80", NewServer("127.0.0.1:80"))
@@ -94,19 +104,20 @@ func TestDelServer(t *testing.T) {
 }
 
 func TestReconfigure(t *testing.T) {
-	pool := NewPool("test", PoolConfig{})
+	pool := NewPool("test", PoolConfig{}, map[string]string{})
 	defer pool.Shutdown()
 
-	pool.Reconfigure(newTestConfig())
+	pool.Reconfigure(newTestConfig(), newTestHeaders())
 	if pool.Config != newTestConfig() {
 		t.Errorf("should reconfigure pool config")
 	}
+
 }
 
 func TestRunChecks(t *testing.T) {
 	conf := newTestConfig()
 
-	pool := NewPool("test", conf)
+	pool := NewPool("test", conf, newTestHeaders())
 	defer pool.Shutdown()
 
 	backend := testutils.NewBackend(0, false)
@@ -124,7 +135,7 @@ func TestRunChecks(t *testing.T) {
 		HealthzEvery:   2 * time.Second,
 		HealthzTimeout: 1 * time.Second,
 	}
-	pool.Reconfigure(conf)
+	pool.Reconfigure(conf, newTestHeaders())
 	time.Sleep(50 * time.Millisecond)
 
 	backend.SetStatus(http.StatusOK, "OK")
@@ -134,7 +145,7 @@ func TestRunChecks(t *testing.T) {
 }
 
 func TestNextMaintenance(t *testing.T) {
-	pool := NewPool("test", newTestConfig())
+	pool := NewPool("test", newTestConfig(), newTestHeaders())
 	defer pool.Shutdown()
 
 	backend0 := testutils.NewBackend(0, false)
@@ -156,7 +167,7 @@ func TestNextMaintenance(t *testing.T) {
 }
 
 func TestNextCost(t *testing.T) {
-	pool := NewPool("test", newTestConfig())
+	pool := NewPool("test", newTestConfig(), newTestHeaders())
 	defer pool.Shutdown()
 
 	backend0 := testutils.NewBackend(0, false)
@@ -196,7 +207,7 @@ func TestHandleDummy(t *testing.T) {
 	}
 }
 func TestHandleNoNext(t *testing.T) {
-	pool := NewPool("test", newTestConfig())
+	pool := NewPool("test", newTestConfig(), newTestHeaders())
 	defer pool.Shutdown()
 
 	logRecord, rr := testutils.NewTestHAProxyLogRecord("")
@@ -209,7 +220,7 @@ func TestHandleNoNext(t *testing.T) {
 }
 
 func TestHandle(t *testing.T) {
-	pool := NewPool("test", newTestConfig())
+	pool := NewPool("test", newTestConfig(), newTestHeaders())
 	defer pool.Shutdown()
 
 	backend := testutils.NewBackend(0, false)

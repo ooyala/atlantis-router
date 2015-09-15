@@ -19,6 +19,7 @@ type ZkPool struct {
 	Name     string
 	Internal bool
 	Config   config.PoolConfig
+	Headers  []config.HttpHeader
 }
 
 func ToZkPool(p config.Pool) (ZkPool, map[string]config.Host) {
@@ -26,6 +27,7 @@ func ToZkPool(p config.Pool) (ZkPool, map[string]config.Host) {
 		Name:     p.Name,
 		Internal: p.Internal,
 		Config:   p.Config,
+		Headers:  p.Headers,
 	}
 
 	return zkPool, p.Hosts
@@ -37,5 +39,6 @@ func (z ZkPool) Pool(hosts map[string]config.Host) config.Pool {
 		Internal: z.Internal,
 		Hosts:    hosts,
 		Config:   z.Config,
+		Headers:  z.Headers,
 	}
 }
