@@ -111,7 +111,9 @@ func TestReconfigure(t *testing.T) {
 	if pool.Config != newTestConfig() {
 		t.Errorf("should reconfigure pool config")
 	}
-
+	if !reflect.DeepEqual(pool.Headers, newTestHeaders()) {
+		t.Errorf("should set pool headers")
+	}
 }
 
 func TestRunChecks(t *testing.T) {

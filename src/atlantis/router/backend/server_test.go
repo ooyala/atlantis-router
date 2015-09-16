@@ -145,6 +145,72 @@ func TestHandleTimeout(t *testing.T) {
 		t.Errorf("should report status code 502")
 	}
 
+	tmp := logRecord.GetResponseHeaders()
+	val, ok := tmp["Cache-Control"]
+	if !ok {
+		t.Errorf("should report Cache-Control Header")
+	}
+	if len(val) < 1 || val[0] != "no-cache" {
+		t.Errorf("should report Cache-Control Header")
+	}
+
+	body, _ := ioutil.ReadAll(rr.Body)
+	if string(body) != "Gateway Timeout\n" {
+		t.Errorf("should report 'Gateway Timeout'")
+	}
+}
+
+func TestHandleTimeoutResponseCacheHeadersNotConfigured(t *testing.T) {
+	backend := testutils.NewBackend(100, false)
+	backend.SetResponse(http.StatusOK, "Ba-ba-ba-ba-ba-na-na!")
+	defer backend.Shutdown()
+
+	server := NewServer(backend.Address())
+	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
+	httpHeaders := make(map[string]string)
+	server.Handle(logRecord, 10*time.Millisecond, &httpHeaders)
+
+	if logRecord.GetResponseStatusCode() != http.StatusGatewayTimeout ||
+		rr.Code != http.StatusGatewayTimeout {
+		t.Errorf("should report status code 502")
+	}
+
+	tmp := logRecord.GetResponseHeaders()
+	_, ok := tmp["Cache-Control"]
+	if ok {
+		t.Errorf("should not report Cache-Control Header")
+	}
+
+	body, _ := ioutil.ReadAll(rr.Body)
+	if string(body) != "Gateway Timeout\n" {
+		t.Errorf("should report 'Gateway Timeout'")
+	}
+}
+
+func TestCacheHeadersServersDown(t *testing.T) {
+	backend := testutils.NewBackend(0, false)
+	backend.SetResponse(http.StatusOK, "Ba-ba-ba-ba-ba-na-na!")
+	defer backend.Shutdown()
+	server := NewServer(backend.Address())
+	backend.SetStatus(http.StatusInternalServerError, "UNKNOWN")
+
+	logRecord, rr := testutils.NewTestHAProxyLogRecord(backend.URL())
+	server.Handle(logRecord, 10*time.Millisecond, newServerHeaders())
+
+	if logRecord.GetResponseStatusCode() != http.StatusGatewayTimeout ||
+		rr.Code != http.StatusGatewayTimeout {
+		t.Errorf("should report status code 502")
+	}
+
+	tmp := logRecord.GetResponseHeaders()
+	val, ok := tmp["Cache-Control"]
+	if !ok {
+		t.Errorf("should report Cache-Control Header")
+	}
+	if len(val) < 1 || val[0] != "no-cache" {
+		t.Errorf("should report Cache-Control Header")
+	}
+
 	body, _ := ioutil.ReadAll(rr.Body)
 	if string(body) != "Gateway Timeout\n" {
 		t.Errorf("should report 'Gateway Timeout'")
