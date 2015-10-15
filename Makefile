@@ -53,12 +53,12 @@ deb: clean build example
 	@sed -ri "s/__PACKAGE__/atlantis-router/" $(DEB_STAGING)/$(PROJECT_NAME)/DEBIAN/control
 	@cd $(DEB_STAGING) && dpkg -b $(PROJECT_NAME) $(PROJECT_ROOT)
 
-test:
+test: clean install-deps
 ifdef TEST_PACKAGE
 	@echo "Testing $$TEST_PACKAGE..."
 	@go test $$TEST_PACKAGE $$VERBOSE $$EXTRA_FLAGS
 else
-	@for p in `find ./src -type f -name "*.go" |sed 's-\./src/\(.*\)/.*-\1-' |sort -u`; do \
+	@for p in `find ./src -type f -name "*_test.go" |sed 's-\./src/\(.*\)/.*-\1-' |sort -u`; do \
 		echo "Testing $$p..."; \
 		go test $$p -cover || exit 1; \
 	done
