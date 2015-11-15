@@ -62,7 +62,7 @@ func (s *Server) RoundTrip(req *http.Request, ch chan ResponseError) {
 	}
 }
 
-func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) {
+func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration, headers *map[string]string) {
 	sTime := time.Now()
 	s.Metrics.RequestStart()
 	defer s.Metrics.RequestDone()
@@ -93,10 +93,16 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 			}
 		} else {
 			logger.Errorf("[server %s] failed attempting the roundtrip: %s\n", s.Address, resErr.Error)
+			for k, v := range *headers {
+				logRecord.AddResponseHeader(k, v)
+			}
 			logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
 			logRecord.Terminate("Server: " + logger.BadGatewayMsg)
 		}
 	case <-time.After(tout):
+		for k, v := range *headers {
+			logRecord.AddResponseHeader(k, v)
+		}
 		s.Transport.CancelRequest(logRecord.Request)
 		logger.Printf("[server %s] round trip timed out!", s.Address)
 		logRecord.Error(logger.GatewayTimeoutMsg, http.StatusGatewayTimeout)

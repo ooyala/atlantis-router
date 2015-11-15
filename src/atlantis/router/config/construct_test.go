@@ -50,6 +50,49 @@ func TestConstructPoolConfig(t *testing.T) {
 	}
 }
 
+func TestConstructPoolHeaders(t *testing.T) {
+	config := NewConfig(routing.DefaultMatcherFactory())
+	headers := make([]HttpHeader, 1)
+	headers[0] = HttpHeader{Key: "Cache-Control", Value: "max-age:3600"}
+	test := Pool{
+		Name: "Aloha!",
+		Config: PoolConfig{
+			HealthzEvery:   "Saturn",
+			HealthzTimeout: "Jupiter",
+			RequestTimeout: "Mars",
+			Status:         "Excellent",
+		},
+		Headers: headers,
+	}
+
+	parsed := config.ConstructPoolHeaders(test)
+	val, ok := parsed["Cache-Control"]
+	if !ok {
+		t.Errorf("Failed to contruct Headers")
+	}
+	if val != "max-age:3600" {
+		t.Errorf("Failed to contruct Headers. Invalid value expected max-age:3600 and got ", val)
+	}
+}
+
+func TestEmptyConstructPoolHeaders(t *testing.T) {
+	config := NewConfig(routing.DefaultMatcherFactory())
+	test := Pool{
+		Name: "Aloha!",
+		Config: PoolConfig{
+			HealthzEvery:   "Saturn",
+			HealthzTimeout: "Jupiter",
+			RequestTimeout: "Mars",
+			Status:         "Excellent",
+		},
+	}
+
+	parsed := config.ConstructPoolHeaders(test)
+	if parsed == nil {
+		t.Errorf("nil Headers")
+	}
+}
+
 func TestConstructRuleEmpty(t *testing.T) {
 	config := NewConfig(routing.DefaultMatcherFactory())
 

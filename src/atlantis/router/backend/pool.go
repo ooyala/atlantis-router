@@ -28,6 +28,7 @@ type PoolConfig struct {
 type Pool struct {
 	Name    string
 	Dummy   bool
+	Headers map[string]string //response headers set in case apps are unreachable
 	Servers map[string]*Server
 	Config  PoolConfig
 	killCh  chan bool
@@ -41,10 +42,11 @@ func DummyPool(name string) *Pool {
 	}
 }
 
-func NewPool(name string, config PoolConfig) *Pool {
+func NewPool(name string, config PoolConfig, headers map[string]string) *Pool {
 	pool := &Pool{
 		Name:    name,
 		Dummy:   false,
+		Headers: headers,
 		Servers: map[string]*Server{},
 		Config:  config,
 		killCh:  make(chan bool),
@@ -79,8 +81,9 @@ func (p *Pool) DelServer(name string) {
 	delete(p.Servers, name)
 }
 
-func (p *Pool) Reconfigure(config PoolConfig) {
+func (p *Pool) Reconfigure(config PoolConfig, headers map[string]string) {
 	p.Config = config
+	p.Headers = headers
 }
 
 func (p *Pool) RunChecks() {
@@ -128,6 +131,9 @@ func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 
 	server := p.Next()
 	if server == nil {
+		for k, v := range p.Headers {
+			logRecord.AddResponseHeader(k, v)
+		}
 		// reachable when all servers in pool report StatusMaintenance
 		logger.Printf("[pool %s] no server", p.Name)
 		logRecord.Error(logger.ServiceUnavailableMsg, http.StatusServiceUnavailable)
@@ -135,5 +141,5 @@ func (p *Pool) Handle(logRecord *logger.HAProxyLogRecord) {
 		return
 	}
 	logRecord.PoolUpdateRecord(p.Name, p.Metrics.GetActiveConnections(), p.Metrics.GetTotalConnections(), pTime)
-	server.Handle(logRecord, p.Config.RequestTimeout)
+	server.Handle(logRecord, p.Config.RequestTimeout, &p.Headers)
 }

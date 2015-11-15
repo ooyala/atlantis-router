@@ -58,11 +58,31 @@ func (h Host) String() string {
 	return h.StringIndent("")
 }
 
+type HttpHeader struct {
+	Key   string
+	Value string
+}
+
+func (h HttpHeader) Equals(o HttpHeader) bool {
+	return h.Key == o.Key && h.Value == o.Value
+}
+
+func (h HttpHeader) StringIndent(i string) (str string) {
+	str += fmt.Sprintf("%s--HttpHeader\n", i)
+	str += fmt.Sprintf("%s  Key : %s, Value : %s\n", i, h.Key, h.Value)
+	return
+}
+
+func (h HttpHeader) String() string {
+	return h.StringIndent("")
+}
+
 type Pool struct {
 	Name     string
 	Internal bool
 	Hosts    map[string]Host
 	Config   PoolConfig
+	Headers  []HttpHeader
 }
 
 func (p Pool) Equals(o Pool) bool {
@@ -77,7 +97,11 @@ func (p Pool) StringIndent(i string) (str string) {
 	for name, host := range p.Hosts {
 		str += fmt.Sprintf("%s    %s : %s\n", i, name, host.Address)
 	}
+	str += fmt.Sprintf("%s  --Headers\n", i)
 	str += p.Config.StringIndent(i + "  ")
+	for i, header := range p.Headers {
+		str += fmt.Sprintf("%s    %s : %s\n", i, header.Key, header.Value)
+	}
 	return
 }
 

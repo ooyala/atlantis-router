@@ -63,8 +63,18 @@ func (c *Config) ConstructPoolConfig(pool Pool) backend.PoolConfig {
 	}
 }
 
+func (c *Config) ConstructPoolHeaders(pool Pool) (httpHeaders map[string]string) {
+	httpHeaders = make(map[string]string)
+	for _, hdr := range pool.Headers {
+		if &hdr != nil {
+			httpHeaders[hdr.Key] = hdr.Value
+		}
+	}
+	return httpHeaders
+}
+
 func (c *Config) ConstructPool(pool Pool) *backend.Pool {
-	return backend.NewPool(pool.Name, c.ConstructPoolConfig(pool))
+	return backend.NewPool(pool.Name, c.ConstructPoolConfig(pool), c.ConstructPoolHeaders(pool))
 }
 
 func (c *Config) ConstructRule(rule Rule) *routing.Rule {
