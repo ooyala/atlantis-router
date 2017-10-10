@@ -76,31 +76,38 @@ func (s *Server) Handle(logRecord *logger.HAProxyLogRecord, tout time.Duration) 
 	go s.RoundTrip(logRecord.Request, resErrCh)
 	tend := time.Now()
 	logRecord.UpdateTr(tstart, tend)
-	select {
-	case resErr := <-resErrCh:
-		if resErr.Response != nil {
-			defer resErr.Response.Body.Close()
-		}
-		if resErr.Error == nil {
-			logRecord.CopyHeaders(resErr.Response.Header)
-			logRecord.WriteHeader(resErr.Response.StatusCode)
-
-			err := logRecord.Copy(resErr.Response.Body)
-			if err != nil {
-				logger.Errorf("[server %s] failed attempting to copy response body: %s\n", s.Address, err)
-			} else {
-				logRecord.Log()
+	for {
+		select {
+		case resErr := <-resErrCh:
+			if resErr.Response != nil {
+				defer resErr.Response.Body.Close()
 			}
-		} else {
-			logger.Errorf("[server %s] failed attempting the roundtrip: %s\n", s.Address, resErr.Error)
-			logRecord.Error(logger.BadGatewayMsg, http.StatusBadGateway)
-			logRecord.Terminate("Server: " + logger.BadGatewayMsg)
+			if resErr.Error == nil {
+				logRecord.CopyHeaders(resErr.Response.Header)
+				logRecord.WriteHeader(resErr.Response.StatusCode)
+
+				err := logRecord.Copy(resErr.Response.Body)
+				if err != nil {
+					logger.Errorf("[server %s] failed attempting to copy response body: %s\n", s.Address, err)
+				} else {
+					logRecord.Log()
+				}
+			} else {
+				logger.Errorf("[server %s] failed attempting the roundtrip: %s\n", s.Address, resErr.Error)
+				msg := logger.BadGatewayMsg
+				status := http.StatusBadGateway
+				if strings.Contains(resErr.Error.Error(), "request canceled") {
+					msg = logger.GatewayTimeoutMsg
+					status = http.StatusGatewayTimeout
+				}
+				logRecord.Error(msg, status)
+				logRecord.Terminate("Server: " + msg)
+			}
+			return
+		case <-time.After(tout):
+			// close socket, RoundTrip will return error (or data if the transaction completed before close)
+			s.Transport.CancelRequest(logRecord.Request)
 		}
-	case <-time.After(tout):
-		s.Transport.CancelRequest(logRecord.Request)
-		logger.Printf("[server %s] round trip timed out!", s.Address)
-		logRecord.Error(logger.GatewayTimeoutMsg, http.StatusGatewayTimeout)
-		logRecord.Terminate("Server: " + logger.GatewayTimeoutMsg)
 	}
 }
 func (s *Server) CheckStatus(tout time.Duration) {
@@ -109,27 +116,28 @@ func (s *Server) CheckStatus(tout time.Duration) {
 	resErrCh := make(chan ResponseError)
 	go s.RoundTrip(r, resErrCh)
 
-	select {
-	case resErr := <-resErrCh:
-		if resErr.Response != nil {
-			defer resErr.Response.Body.Close()
-		}
-		if resErr.Error == nil {
+	for {
+		select {
+		case resErr := <-resErrCh:
+			if resErr.Response != nil {
+				defer resErr.Response.Body.Close()
+			}
+			if resErr.Error == nil {
 
-			//if status has changed then log
-			if s.Status.ParseAndSet(resErr.Response) {
-				logger.Printf("[server %s] status code changed to %d\n", s.Address, resErr.Response.StatusCode)
+				//if status has changed then log
+				if s.Status.ParseAndSet(resErr.Response) {
+					logger.Printf("[server %s] status code changed to %d\n", s.Address, resErr.Response.StatusCode)
+				}
+			} else {
+				//if status has changed then log
+				if s.Status.Set(StatusCritical) {
+					logger.Errorf("[server %s] status set to critical! : %s\n", s.Address, resErr.Error)
+				}
 			}
-		} else {
-			//if status has changed then log
-			if s.Status.Set(StatusCritical) {
-				logger.Errorf("[server %s] status set to critical! : %s\n", s.Address, resErr.Error)
-			}
-		}
-	case <-time.After(tout):
-		s.Transport.CancelRequest(r)
-		if s.Status.Set(StatusCritical) {
-			logger.Errorf("[server %s] status set to critical due to timeout!\n", s.Address)
+			return
+		case <-time.After(tout):
+			// close socket, RoundTrip will return error (or data if the transaction completed before close)
+			s.Transport.CancelRequest(r)
 		}
 	}
 }
